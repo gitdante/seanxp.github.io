@@ -1,0 +1,2465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>SeanXP</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://seanxp.com/"/>
+  <updated>2017-02-05T02:44:27.000Z</updated>
+  <id>http://seanxp.com/</id>
+  
+  <author>
+    <name>SeanXP</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>The GNU Privacy Guard</title>
+    <link href="http://seanxp.com/2017/gpg/"/>
+    <id>http://seanxp.com/2017/gpg/</id>
+    <published>2017-02-03T11:15:35.000Z</published>
+    <updated>2017-02-05T02:44:27.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><ul>
+<li><a href="https://www.gnupg.org/" target="_blank" rel="external">The GNU Privacy Guard</a></li>
+<li><a href="https://www.wikiwand.com/zh-hans/GnuPG" target="_blank" rel="external">GPG 维基百科</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2013/07/gpg.html" target="_blank" rel="external">GPG 入门教程</a></li>
+<li><a href="https://www.madboa.com/geek/gpg-quickstart/" target="_blank" rel="external">GPG Quick Start</a></li>
+<li><a href="https://help.ubuntu.com/community/GnuPrivacyGuardHowto" target="_blank" rel="external">Gnu Privacy Guard Howto</a></li>
+<li><a href="https://wiki.archlinux.org/index.php/GnuPG" target="_blank" rel="external">ArchLinux GunPG</a></li>
+</ul>
+<a id="more"></a>
+<h1 id="Why-Use-GnuPG"><a href="#Why-Use-GnuPG" class="headerlink" title="Why Use GnuPG?"></a><a href="https://www.phildev.net/pgp/gpgwhy.html" target="_blank" rel="external">Why Use GnuPG?</a></h1><p>PGP is useful for two things:</p>
+<ol>
+<li>Privacy and Security</li>
+<li>Authenticity</li>
+</ol>
+<p>对比《连城诀》，第一步是「唐诗选辑」（不过用口水解密不够文雅），第二部是「唐诗剑法」（没有师傅认证亲传武功是不行的），最后才解密出「江陵城南偏西天宁寺大殿佛像向之虔诚膜拜通灵祝告如来赐福往生极乐」。<br>当然也有类似凌退思这样“密码字典暴力破解”的方法 :-)<br>所以我们的 GPG 钥匙长度要设置的长长长一些。</p>
+<h1 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h1><h2 id="Generate-GPG-Keys"><a href="#Generate-GPG-Keys" class="headerlink" title="Generate GPG Keys"></a>Generate GPG Keys</h2><pre><code>$ gpg --gen-key
+</code></pre><p>细节参考<a href="http://www.ruanyifeng.com/blog/2013/07/gpg.html" target="_blank" rel="external">GPG入门教程</a>，写的非常详细，这里不再赘述。</p>
+<p>查看本机公钥（<code>.gnupg/pubring.gpg</code>）：<code>$ gpg --list-keys</code><br>查看本机私钥（<code>.gnupg/secring.gpg</code>）：<code>$ gpg --list-secret-keys</code></p>
+<p>本文假设生成的 GPG Public Key ID 是 <code>0x5655CA935F09337F</code>。<br>生成公私钥后，可以进行下列配置：</p>
+<ol>
+<li><p>Set your key as the default key by entering this line in your ~/.bash_profile (along with any other environment variables to be exported):</p>
+<pre><code>export GPGKEY=0x5655CA935F09337F
+</code></pre><p> 设置 shell 变量 <code>$GPGKEY</code> ，这样以后不再需要记住 Key ID ：</p>
+<pre><code>$ gpg --list-keys $GPGKEY
+$ gpg --list-secret-keys $GPGKEY
+</code></pre></li>
+<li><p>Now restart the gpg-agent and set the relevant environment variable:</p>
+<pre><code>$ killall -q gpg-agent
+$ eval $(gpg-agent --daemon)
+$ export GPGKEY=0x5655CA935F09337F
+</code></pre><p> 启动<code>gpg-agent</code>（功能类似<code>ssh-agent</code>），输入一次 GPG 私钥密码以后，<code>gpg-agent</code> 自动将私钥密码拷贝到内存中供下次使用，下次不用再输入密码。<br> 注意：安全性与便捷性之间需要取舍。<code>gpg-agent / ssh-agent</code> 固然便捷许多，但是也为他人大开方便之门。如果他人连接进本机，也无需输入密码而使用 GPG / SSH 。</p>
+</li>
+</ol>
+<h2 id="Export-Public-Key"><a href="#Export-Public-Key" class="headerlink" title="Export Public Key"></a>Export Public Key</h2><pre><code>$ gpg --armor --output key.pub.asc --export $GPGKEY
+$ gpg --output key.pub --export $GPGKEY
+</code></pre><p>导出本机的公钥，提供给他人。</p>
+<ul>
+<li><code>--armor</code>, create ASCII armored output; 导出文字版本的 GPG 公钥，故用后缀 <code>.asc</code> 表示，这种格式比较常用，可直接公布在网站页面中；</li>
+<li>无<code>--armor</code>参数，导出二进制格式的 GPG 公钥；</li>
+</ul>
+<h2 id="Sends-Public-Key-to-Keyserver"><a href="#Sends-Public-Key-to-Keyserver" class="headerlink" title="Sends Public Key to Keyserver"></a>Sends Public Key to Keyserver</h2><p>除了直接导出公钥提供给他人以外，也可以将公钥发布到钥匙服务器 keyserver，供他人搜索下载：</p>
+<pre><code>$ gpg --keyserver hkp://keys.gnupg.net --send-keys $GPGKEY
+gpg: sending key 5F09337F to hkp server keys.gnupg.net
+</code></pre><p>服务 <code>keys.gnupg.net</code> 背后是一组服务器，它们之间的信息同步需要一定的时间，刚刚提交公钥可能不会立即搜索就有结果，只要过一段时间（最长可能要几小时或者几天）就好了。<br>公钥服务器会保存发布的公钥，直到其过期<code>expire</code>为止。建议不要发布永不过期的公钥，毕竟 <code>Shit happens</code> 。或者事前未雨绸缪，生成一份撤销证书线下保存好。</p>
+<p>注意：任何人都可以冒充你的名义上传公钥到 GPG 服务器，所以对方搜到以你的名义发布的公钥，不一定真的是你发布的。为了避免这个问题，你需要公布主钥的指纹。GPG 导入公钥后需要手动设置信任度。这时候对方就可以通过对比计算得到的主钥指纹和你提供的主钥指纹，来确定导入的主钥的合法性。</p>
+<pre><code>$ gpg --fingerprint &lt;key ID&gt; | perl -nE &apos;$.-2 or s/^\h+// and print&apos; | tee fingerprint
+</code></pre><h2 id="Generate-Revocation-Key"><a href="#Generate-Revocation-Key" class="headerlink" title="Generate Revocation Key"></a>Generate Revocation Key</h2><p><strong>A revocation certificate must be generated to revoke your public key if your private key has been compromised in any way.</strong> It is recommended to create a revocation certificate when you create your key. Keep your revocation certificate on a medium that you can safely secure, like a thumb drive in a locked box.<br><strong>Anybody having access to your revocation certificate can revoke your key, rendering it useless.</strong><br><strong>For security purposes, there is no mechanism in place to revoke a key without a revocation certificate.</strong> As much as you might want to revoke a key, the revocation certificate prevents malicious revocations. Guard your revocation certificate with the same care you would use for your private key.</p>
+<p><code>Shit happens</code>，因此要做好防护措施。为自己的公钥设置一份撤销证书，用于将不再安全的公钥从服务器上撤回。<br>什么情况下公钥会变得“不再安全”？自然是对应的私钥可能已经泄露的情况下，此时别人再用这样的公钥对你发送加密文件，可能被私钥窃取者解密（此时私钥的解锁密码是最后一道防线）。<br>生成的撤销证书就是一段格式类似文本公钥的字符串，需要严密保存起来。因为任何人都可以拿着这份撤销证书发布到公钥服务器上来撤销你的公钥。然而即使是撤销的证书，也依然可以从公钥服务器中下载。</p>
+<ol>
+<li><p>To revoke your key you need to first create a revocation certificate.</p>
+<pre><code>$ gpg --output revoke.asc --gen-revoke $GPGKEY
+</code></pre></li>
+<li><p>(第2步、第3步是将来撤销证书所需要执行的操作) Import your revocation certificate</p>
+<pre><code>$ gpg --import revoke.asc
+</code></pre></li>
+<li><p>(<strong>不到万不得已，即确定私钥已不再安全的情况下，不要执行此操作</strong>) Upload the key to your keyserver of choice.</p>
+<pre><code>$ gpg --keyserver hkp://pgp.mit.edu --send-key [key-ID]
+</code></pre></li>
+</ol>
+<h2 id="Search-Public-Key"><a href="#Search-Public-Key" class="headerlink" title="Search Public Key"></a>Search Public Key</h2><p>根据<code>用户名（UID）</code>或<code>用户邮箱（email）</code>，可以从公钥服务器中搜索其发布的 GPG Public Key。<br>注意：<strong>任何人都可以用 seanxp 的名义向服务器发布公钥，因此必须审核公钥的指纹是否一致。</strong></p>
+<pre><code>$ gpg --keyserver hkp://pgp.mit.edu --search-keys seanxp
+gpg: searching for &quot;seanxp&quot; from hkp server pgp.mit.edu
+(1)     seanxp &lt;seanxp.com&gt;
+          4096 bit RSA key 0x5655CA935F09337F, created: 2016-11-15, expires: 2026-11-13
+</code></pre><p>这里搜索到一名号称「seanxp」的人发布的公钥（ID: 0x5655CA935F09337F），为了确认是否是「真•SeanXP」，在 <a href="http://seanxp.com/about/">SeanXP.com/about</a> 页面查看其公布的指纹为</p>
+<pre><code>Key fingerprint = 429D 47BB BDB0 AA92 B8B6  28F7 5655 CA93 5F09 337F
+</code></pre><p>其中公钥 ID 就是指纹的后面几位数字，发现后16位十六位进制数字相同(<code>5655 CA93 5F09 337F</code>)，<strong>权且相信</strong>是「seanxp」的公钥。<br>为什么是<strong>权且相信</strong>？因为目前只是后16位数字相同，并不是指纹完全匹配。需要导入搜索到的公钥，打印其指纹，再进行匹配。添加公钥到主机后，打印此公钥的指纹：</p>
+<pre><code>$ gpg --fingerprint seanxp
+pub   4096R/0x5655CA935F09337F 2016-11-15
+      Key fingerprint = 429D 47BB BDB0 AA92 B8B6  28F7 5655 CA93 5F09 337F
+uid                 [ultimate] seanxp &lt;seanxp.com&gt;
+sub   4096R/0x406A8B31846FF748 2016-11-15 [expires: 2026-11-13]
+      Key fingerprint = 9723 3991 6C7B E775 08C4  38D3 406A 8B31 846F F748
+</code></pre><p>指纹匹配成功，说明这是正确的公钥。</p>
+<p>注：如果像下面例子（centOS），可以在搜索时查看指纹，可以先匹配指纹再决定是否下载公钥，可以省去不少麻烦。</p>
+<pre><code>gpg: searching for &quot;seanxp&quot; from hkp server keys.gnupg.net
+(1)     seanxp &lt;seanxp.com&gt;
+          4096 bit RSA key 429D47BBBDB0AA92B8B628F75655CA935F09337F, created: 2016-11-15, expires: 2026-11-13
+</code></pre><h3 id="long-keyid-collision"><a href="#long-keyid-collision" class="headerlink" title="long-keyid collision"></a>long-keyid collision</h3><p>有匹配成功的案例，自然有匹配不成功的案例。下面就是一个公钥后8位数字相同的攻击案例：<br>GPG 默认显示 Key ID 的后8位数字（即指纹的后8位），那么就有一些别有用心的人，可以暴力生成后8位相同的公钥来实现欺骗目的。 如下，搜索 <code>Linus Torvalds</code> 的 GPG 公钥，现在知其邮箱是 <code>torvalds@linux-foundation.org</code>，进行搜索：</p>
+<pre><code>$ gpg --search-keys torvalds@linux-foundation.org
+gpg: searching for &quot;torvalds@linux-foundation.org&quot; from hkps server hkps.pool.sks-keyservers.net
+(1)     Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+          2048 bit RSA key 00411886, created: 2014-07-21 (revoked)
+(2)     Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+          2048 bit RSA key 00411886, created: 2011-09-20
+Keys 1-2 of 2 for &quot;torvalds@linux-foundation.org&quot;.  Enter number(s), N)ext, or Q)uit &gt;
+</code></pre><p>搜索到两个具有相同的 Key ID 的公钥！这里就需要进行指纹匹配。在网上搜索，发现<code>https://www.kernel.org/category/signatures.html</code>提供有<code>Linus Torvalds</code>的公钥指纹</p>
+<pre><code>Developer         Fingerprint
+Linus Torvalds    ABAF 11C6 5A29 70B1 30AB  E3C4 79BE 3E43 0041 1886
+</code></pre><p>下面的例子体现出 <code>long Key ID</code> 的好处，更难进行<code>long-keyid collision</code>，后8位容易碰撞相同，后16位碰撞就难的多。</p>
+<pre><code>gpg: searching for &quot;torvalds@linux-foundation.org&quot; from hkps server hkps.pool.sks-keyservers.net
+(1)     Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+          2048 bit RSA key 0x6211AA3B00411886, created: 2014-07-21 (revoked)
+(2)     Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+          2048 bit RSA key 0x79BE3E4300411886, created: 2011-09-20
+Keys 1-2 of 2 for &quot;torvalds@linux-foundation.org&quot;.  Enter number(s), N)ext, or Q)uit &gt;
+</code></pre><p>配置显示 <code>long Key ID</code> 是在 <code>~/.gnupg/gpg.conf</code> 中进行配置：</p>
+<pre><code>~/.gnupg/gpg.conf
+
+# short-keyids are trivially spoofed; it&apos;s easy to create a
+# long-keyid collision; if you care about strong key
+# identifiers, you always want to see the fingerprint.
+# Display long key IDs
+keyid-format 0xlong
+
+# List all keys (or the specified ones) along with their fingerprints
+with-fingerprint
+</code></pre><h2 id="Import-Public-Key"><a href="#Import-Public-Key" class="headerlink" title="Import Public Key"></a>Import Public Key</h2><p>除了在 GPG 服务器上搜索对方的公钥以外，可以不经过搜索，直接获取指定 Key ID 的公钥：</p>
+<pre><code>$ gpg --recv-key 0x5F09337F
+$ gpg --keyserver hkp://pgp.mit.edu --recv-key 0x5655CA935F09337F
+</code></pre><p>建议全部使用长 16 位的 Key ID，防止出现后八位碰撞的问题。<br>也可以直接导入他人的公钥文件，不再通过公钥服务器获取，尤其国内线路经常无法访问到公钥服务器：</p>
+<pre><code>$ wget http://seanxp.com/about/0x5655CA935F09337F-public.key
+
+$ file 0x5655CA935F09337F-public.key
+0x5655CA935F09337F-public.key: PGP public key block Public-Key (old)
+
+$ gpg --import 0x5655CA935F09337F-public.key
+</code></pre><p>这里也需要再核对一下指纹，因为这里是通过 <code>http</code> 获取的公钥，可能出现<code>中间人攻击</code>。中间人既然能篡改你所获取到的公钥，也可能篡改 http 网页上的指纹，因此凡是 http 网页上的公钥和指纹，都要保持怀疑态度。最好是在可靠的源头（https 或 email 联系）确认公钥的合法性。而 <code>https</code> 也需要防范中间人攻击，要确保本机的 SSL 证书链的可靠性。</p>
+<h2 id="Sign-Key"><a href="#Sign-Key" class="headerlink" title="Sign Key"></a>Sign Key</h2><p>对于校验指纹无误的公钥，可以用本机私钥进行签名。签名公钥的流程：</p>
+<ol>
+<li><p>校验指纹（只有先确认可靠指纹的来源，才能校验本机获取到的公钥指纹的可靠性，再次提醒 http 页面是不可靠的）</p>
+<pre><code>$ gpg --fingerprint seanxp
+</code></pre></li>
+<li><p>指纹校验成功，则用本机私钥对该公钥进行签名（需要本机私钥授权，即需要输入本机私钥的密码，可防止他人授权）</p>
+<pre><code>$ gpg --sign-key seanxp
+$ gpg --local-user seanxp --sign-key torvalds@linux-foundation.org
+</code></pre></li>
+<li><p>校验失败，则删除错误的公钥。</p>
+<pre><code>$ gpg --delete-keys seanxp
+</code></pre></li>
+</ol>
+<p>为什么要用本机私钥对公钥进行签名呢？<br>防止他人篡改本机的可靠公钥，如果他人想用虚假公钥替换可靠公钥，下次使用该公钥，系统会提示公钥不可靠（所有未签名的公钥都会提示不可靠的信息）。<br>经过 <code>gpg --sign-key</code> 签名的公钥，成为了 <code>trust: unknown validity: full</code>，即现在确认该公钥是有效的（validity），但是还未信任该公钥。信任公钥需要用到交互命令<code>--edit-key</code>。</p>
+<h2 id="Edit-Key"><a href="#Edit-Key" class="headerlink" title="Edit Key"></a>Edit Key</h2><pre><code>$ gpg --edit-key seanxp
+</code></pre><p>编辑公钥，有很多功能：</p>
+<ul>
+<li>fpr, show key fingerprint</li>
+<li>sign, sign selected user IDs</li>
+<li>trust, change the ownertrust</li>
+<li>enable, enable key</li>
+<li>disable, disable key</li>
+<li>passwd, change the passphrase</li>
+</ul>
+<p>对于已经校验指纹无误，并已经通过 <code>gpg --sign-key</code> 签名的公钥，可以在编辑公钥下设置其信任度：</p>
+<pre><code>$ gpg --edit-key torvalds@linux-foundation.org
+...
+gpg&gt; trust
+pub  2048R/0x79BE3E4300411886  created: 2011-09-20  expires: never       usage: SC
+                               trust: unknown       validity: full
+sub  2048R/0x88BCE80F012F54CA  created: 2011-09-20  expires: never       usage: E
+[  full  ] (1). Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+
+Please decide how far you trust this user to correctly verify other users&apos; keys
+(by looking at passports, checking fingerprints from different sources, etc.)
+
+  1 = I don&apos;t know or won&apos;t say
+  2 = I do NOT trust
+  3 = I trust marginally
+  4 = I trust fully
+  5 = I trust ultimately
+  m = back to the main menu
+
+Your decision? 4
+
+pub  2048R/0x79BE3E4300411886  created: 2011-09-20  expires: never       usage: SC
+                               trust: full          validity: full
+sub  2048R/0x88BCE80F012F54CA  created: 2011-09-20  expires: never       usage: E
+[  full  ] (1). Linus Torvalds &lt;torvalds@linux-foundation.org&gt;
+Please note that the shown key validity is not necessarily correct
+unless you restart the program.
+
+gpg&gt; quit
+</code></pre><p>关于信任程度的设置，参考<a href="https://www.reddit.com/r/GnuPG/comments/2knpbo/question_clarification_about_trustvalidity/" target="_blank" rel="external">Reddit - Question: clarification about trust/validity</a>：</p>
+<ol>
+<li><p>If you want to privately mark a key as valid, you should use the <code>--lsign-key</code> command.</p>
+<pre><code>--lsign-key name
+Signs a public key with your secret key but marks it as non-exportable. This is a shortcut  version  of the subcommand &quot;lsign&quot; from --edit-key.
+</code></pre></li>
+<li><p>If you want to publicly attest that a key is valid, you should use the <code>--sign-key</code> command.</p>
+<pre><code>--sign-key name
+Signs  a  public  key  with  your  secret key. This is a shortcut version of the subcommand &quot;sign&quot; from --edit.
+</code></pre></li>
+<li>Use <code>gpg --edit-key &lt;keyid&gt;</code>, then enter the command “trust” then select the level of trust you have in the key’s owner.<ul>
+<li>“Marginal” means that key is trusted to be part of a group of introducers.</li>
+<li>“fully” means a signature from that key is all it needs to make another key valid. (Typically, signatures from three marginal sources are needed to mark a key as valid.)</li>
+<li>“ultimately” means the key is your key.</li>
+</ul>
+</li>
+</ol>
+<p>还可以更改本机私钥的密码：</p>
+<pre><code>$ gpg --edit-key $GPGKEY
+...
+gpg&gt; passwd
+...
+gpg&gt; save
+</code></pre><h2 id="Encrypt"><a href="#Encrypt" class="headerlink" title="Encrypt"></a>Encrypt</h2><p>GPG 的一大用处，就是用他人的公钥加密文件，通过不可靠的网络传输过去，由对方的私钥解密，完成通信任务。 这里用自己的公钥加密，模拟练习（自娱自乐），并用自己的私钥解密。</p>
+<pre><code>$ echo &quot;Hello world&quot; &gt; hello.txt
+$ cat -A hello.txt
+Hello world$
+$ md5 hello.txt
+f0ef7081e1539ac00ef5b761b4fb01b3 hello.txt
+
+usage: gpg [options] --encrypt [filename]
+$ gpg --armor --recipient seanxp --output He110.txt --encrypt hello.txt
+$ file He110.txt
+He110.txt: PGP message Public-Key Encrypted Session Key (old)
+</code></pre><ul>
+<li><code>--armor</code>，表示输出文本文件格式。如果要加密二进制文件，则忽略此参数；</li>
+<li><code>--recipient</code>，指定信息的接收者（recipient）公钥的uid，可以是名字也可以是email地址；</li>
+<li><code>--output</code>，指定输出（即加密后）的文件名；</li>
+<li><code>--encrypt</code>，执行加密（encrypt）操作；</li>
+</ul>
+<p>除了这样的长选项，还有简单选项，对应的命令为：</p>
+<pre><code>usage: gpg [options] --encrypt [filename]
+$ gpg -a -r seanxp -o He110.txt -e hello.txt
+</code></pre><p>这样就生成了一份用 seanxp 的公钥所加密的文件，GPG 的算法确保只有 seanxp 的私钥可以解密出正确的数据。<br>除了加密单个文件外，还可以对文件夹进行压缩后加密：</p>
+<pre><code>$ tar -cvz backup/ | gpg -e -r [key-ID] -o backup.tgz.gpg
+$ tar -cvj backup/ | gpg -e -r [key-ID] -o backup.tar.bz2.gpg
+$ file backup.tgz.gpg
+backup.tgz.gpg: PGP RSA encrypted session key - keyid: 318B6A40 48F76F84 RSA (Encrypt or Sign) 4096b .
+</code></pre><p><code>keyid: 318B6A40 48F76F84 RSA (Encrypt or Sign) 4096b</code>，表示该文件是用公钥<code>0x406A8B31846FF748</code>（与keyid的字节序相反，但确实是同一个公钥）加密的。 该公钥是 seanxp 公钥<code>0x5655CA935F09337F</code>的从钥的公钥。</p>
+<pre><code>$ gpg --list-public-keys seanxp
+pub   4096R/0x5655CA935F09337F 2016-11-15
+      Key fingerprint = 429D 47BB BDB0 AA92 B8B6  28F7 5655 CA93 5F09 337F
+uid                 [ultimate] seanxp &lt;seanxp.com&gt;
+sub   4096R/0x406A8B31846FF748 2016-11-15 [expires: 2026-11-13]
+</code></pre><p>生成 GPG 钥匙，会生成两对公私钥，即四把钥匙，用处不同，稍后详解。</p>
+<h2 id="Decrypt"><a href="#Decrypt" class="headerlink" title="Decrypt"></a>Decrypt</h2><p>用公钥加密的数据，可以用对应的私钥解密：</p>
+<pre><code>$ rm hello.txt
+$ gpg --output hello.txt --decrypt He110.txt
+
+You need a passphrase to unlock the secret key for
+user: &quot;seanxp &lt;seanxp.com&gt;&quot;
+4096-bit RSA key, ID 0x406A8B31846FF748, created 2016-11-15
+         (subkey on main key ID 0x5655CA935F09337F)
+
+gpg: encrypted with 4096-bit RSA key, ID 0x406A8B31846FF748, created 2016-11-15
+      &quot;seanxp &lt;seanxp.com&gt;&quot;
+
+$ file hello.txt
+hello.txt: ASCII text
+$ cat -A hello.txt
+Hello world$
+$ md5 hello.txt
+f0ef7081e1539ac00ef5b761b4fb01b3 hello.txt
+</code></pre><p><code>He110.txt</code> 是用子公钥 <code>0x406A8B31846FF748</code> 加密，也是用子私钥解密的。<br>对于加密压缩文件夹的解密方法：</p>
+<pre><code>$ gpg --decrypt backup.tgz.gpg | tar -xz
+$ gpg --decrypt backup.bz2.gpg | tar -xj
+</code></pre><h2 id="signature"><a href="#signature" class="headerlink" title="signature"></a>signature</h2><ul>
+<li><a href="http://www.youdzone.com/signature.html" target="_blank" rel="external">An introduction to Digital Signatures, by David Youd</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2011/08/what_is_a_digital_signature.html" target="_blank" rel="external">数字签名是什么？- 阮一峰的网络日志</a></li>
+</ul>
+<p>既然文件是通过<code>不可靠</code>的网络传输的，很多时候可能被篡改替换，因此需要用到数字签名。 <a href="https://www.kernel.org/category/signatures.html" target="_blank" rel="external">例如在网上下载的 linux kernel 需要验证数字签名是否有效。</a></p>
+<p>注意区别加密与签名：</p>
+<ul>
+<li>加密是对文件进行加密操作，这是是用子公钥<code>0x406A8B31846FF748</code>进行 RSA 加密，确保只有对应的子私钥可以解密；</li>
+<li>加密的数据无需签名，因为如果加密的数据在传输过程中被篡改，解密时会提示<code>gpg: CRC error;</code>校验错误；</li>
+<li>对文件签名，不会对原文件进行任何处理，只是对原文件生成数字摘要并用私钥加密生成数字签名；</li>
+<li>如果只签名不加密，原文件在传输过程中会被其他人看到，但是可以保证该文件在被修改的情况下无法通过数字签名校验；</li>
+<li>加密确保<code>只有你能看到这个文件</code>，签名确保<code>只有我能写出这个文件</code>。</li>
+</ul>
+<h3 id="detached-signature"><a href="#detached-signature" class="headerlink" title="detached signature"></a>detached signature</h3><p>对于分散在多个渠道提供下载的资源（无需加密传输的大文件），最好的方法就是生成一个独立于下载文件的数字签名文件供他人下载校验。很多软件开发者也会在其软件官方网站提供签名文件供校验。<br>例如对 <code>hello.txt</code> 生成分离的签名文件：</p>
+<pre><code>$ gpg --armor --detach-sign hello.txt
+
+You need a passphrase to unlock the secret key for
+user: &quot;seanxp &lt;seanxp.com&gt;&quot;
+4096-bit RSA key, ID 0x5655CA935F09337F, created 2016-11-15
+
+$ file hello.txt.asc
+hello.txt.asc: PGP signature Signature (old)
+</code></pre><p>独立生成一个 <code>hello.txt.asc</code> 的签名文件，后缀名 <code>asc</code> 表示该文件是 ASCII 码形式的。 因为是分离的签名，需要把原信息文件 <code>hello.txt</code> 连同签名文件 <code>hello.txt.asc</code> 一起寄给他人，交由他人进行检验。</p>
+<h3 id="clear-text-signature"><a href="#clear-text-signature" class="headerlink" title="clear text signature"></a>clear text signature</h3><p>对于简单文本，可以使用<code>clearsign</code>的独立（不修改原文件）不分离（原文本与数字签名写在同一文件中）式数字签名：</p>
+<pre><code>$ gpg --clearsign hello.txt
+
+$ cat hello.txt.asc
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Hello world
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCgAGBQJYlVHxAAoJEFZVypNfCTN/wMEP/1HNhw7YUAIGEjkLXlALgCRj
+QLiBxQtzNszmGtzsIaPXRTt4aOxmicmNyLQ7JHImN372LnvYkYDV2PY/ZIfujGpb
+qpTE3kCTEgS55SK/zfLEA+njq1LzCsSuPUUEoIO8DXhg1L+Ktf4GhlupSWI3X/iS
+JzEszetFJ/u2650JQPofY2cWeetrY9j7UdnjqtSJQCrA9be9hcBDoepCzfZg62Ae
+hnuw8sUayE6kwoJKA5aMNcrbN5qxhvUVULJKxhK2cCzi3vatBzjnnqKeFBfz64V8
+LiM3Qk3AbKeE+2P3ZorbXgD265dYDcHTMBCzMgjKoFUvoOlrF+ZeMv7HYcQNOHx7
+dEmx2VEhInwdB9snhBokH8KsFlWsPIpLbbarwDL56jUjC4jrDW8EF05dJLXCfALV
+8M2MVD513tVSx/ktSYyY2h+mBbrfAo5J54+KZN/NJpan/woP0ooWNTyey3T/y/sv
+OZZuyg7w0Hl3j4bVnji++DcJhkwbfq32yvzDi0BLcEATNQRO5h5FifUSg3eV8W0f
+U8p1NUrd5W7in1ne1x9EMZkrFfzkLP7rYxHkmZ+KMW4fNGMFjQGi1YAQN+S0mNCM
+AGuZpLRb0MgudFzotPuyWH5D9hHyWpjF2qHrK7an9jTgtE/eemU4l00frwnBc9a1
+bl9M0p7XCJsh2xOHx72I
+=5P7S
+-----END PGP SIGNATURE-----
+</code></pre><p>根据 <code>hello.txt</code> 生成 <code>hello.txt.asc</code> 文件，此签名文件中已经包含有 <code>hello.txt</code> 的数据。 只需要将此签名文件寄给他人即可。他人校验数字签名的同时即可分离出原数据文件。</p>
+<h3 id="binary-signature"><a href="#binary-signature" class="headerlink" title="binary signature"></a>binary signature</h3><p>使用<code>--sign</code>选项，即可生成最简单的数字签名：</p>
+<pre><code>$ gpg --sign hello.txt
+$ file hello.txt.gpg
+hello.txt.gpg: data
+
+$ gpg helle.txt.gpg
+</code></pre><ul>
+<li>独立的签名文件 <code>hello.txt.gpg</code></li>
+<li>文件数据不加密（可以在<code>hello.txt.gpg</code>文件中看到<code>Hello world</code>）</li>
+<li>二进制数字签名</li>
+</ul>
+<h3 id="summary"><a href="#summary" class="headerlink" title="summary"></a>summary</h3><ul>
+<li>使用<code>--detach-sign</code>选项，生成分离的签名文件；</li>
+<li>使用<code>--sign</code>选项，生成不分离的签名文件，与<code>--detach-sign</code>选项相反；<ul>
+<li>加上<code>--armor</code>选项，则生成 ASCII 格式的数字签名（hello.txt.asc: PGP message Compressed Data），无法看出原文件的数据，但是解密后可以得到原文件数据；</li>
+<li>不加<code>--armor</code>选项，则生成二进制格式的数字签名（hello.txt.gpg: data），可以看到其中的原文件数据；</li>
+</ul>
+</li>
+<li>使用<code>--armor</code>选项，生成 ASCII 格式的签名；</li>
+<li>使用<code>--clearsign</code>选项，可以省略<code>--armor</code>选项，生成独立分离式文本签名；</li>
+</ul>
+<p>另外，如果本机中用于签名的私钥不止一个时，需要指定签名所用的私钥：</p>
+<pre><code>--local-user,-u: Use name as the key to sign with. Note that this option overrides --default-key.
+$ gpg -u $GPGKEY --sign hello.txt
+</code></pre><h3 id="verify"><a href="#verify" class="headerlink" title="verify"></a>verify</h3><p>拿到别人的数字签名文件，需要用其公钥进行校验（别人用私钥生成签名文件，那就用对应的公钥校验签名文件）。 对于 <code>.gpg</code> 后缀的签名文件，直接使用<code>gpg xxx.gpg</code>命名校验其数字签名，并且能分离出原文件。</p>
+<pre><code>$ gpg -u $GPGKEY --sign hello.txt
+$ file hello.txt.gpg
+hello.txt.gpg: data
+
+$ rm hello.txt
+$ gpg hello.txt.gpg
+gpg: Signature made Sat Feb  4 12:34:13 2017 CST
+gpg:                using RSA key 0x5655CA935F09337F
+gpg: Good signature from &quot;seanxp &lt;seanxp.com&gt;&quot; [ultimate]
+Primary key fingerprint: 429D 47BB BDB0 AA92 B8B6  28F7 5655 CA93 5F09 337F
+$ cat -A hello.txt
+Hello world$
+</code></pre><p>对于使用 <code>--detach-sign</code> 签名的签名文件，使用 <code>gpg --verify</code> 命令进行校验。因为是分离的数字签名文件，因此原文件也必须存在，gpg 会对原文件进行 hash 处理，与解密数字签名文件中的 hash 进行对比。</p>
+<pre><code>$ gpg -u $GPGKEY --armor --detach-sign hello.txt
+$ file hello.txt.asc
+hello.txt.asc: PGP signature Signature (old)
+
+$ rm hello.txt
+$ gpg --verify hello.txt.asc
+gpg: no signed data
+gpg: can&apos;t hash datafile: No data
+
+$ echo &quot;Hello world&quot; &gt; hello.txt
+$ gpg --verify hello.txt.asc
+gpg: assuming signed data in &apos;hello.txt&apos;
+gpg: Signature made Sat Feb  4 12:36:14 2017 CST
+gpg:                using RSA key 0x5655CA935F09337F
+gpg: Good signature from &quot;seanxp &lt;seanxp.com&gt;&quot; [ultimate]
+Primary key fingerprint: 429D 47BB BDB0 AA92 B8B6  28F7 5655 CA93 5F09 337F
+</code></pre><p>对于不分离的数字签名文件 <code>--clearsign</code>，不需要原文件，因为签名文件中已包含签名文件的数据，可以使用<code>gpg --verify</code>直接校验。</p>
+<h2 id="Encrypt-amp-Signature"><a href="#Encrypt-amp-Signature" class="headerlink" title="Encrypt &amp; Signature"></a>Encrypt &amp; Signature</h2><p>同时进行加密和签名操作：</p>
+<pre><code>$ gpg --local-user [发信者ID] --recipient [接收者ID] --armor --sign --encrypt hello.txt
+
+$ gpg --local-user $GPGKEY --recipient torvalds@linux-foundation.org --armor --sign --encrypt hello.txt
+$ file hello.txt.asc
+hello.txt.asc: PGP message Public-Key Encrypted Session Key (old)
+</code></pre><h1 id="GPG-Subkeys"><a href="#GPG-Subkeys" class="headerlink" title="GPG Subkeys"></a>GPG Subkeys</h1><ul>
+<li><a href="http://blog.theerrorlog.com/using-gpg.html" target="_blank" rel="external">GPG 密鑰的「正確」用法</a></li>
+<li><a href="https://mechanus.io/ke-neng-shi-zui-hao-de-yubikey-gpg-ssh-zhi-neng-qia-jiao-cheng/" target="_blank" rel="external">为什么我们需要三个新的子密钥</a></li>
+<li><a href="https://www.mawenbao.com/note/gnupg.html" target="_blank" rel="external">多对subkey</a></li>
+</ul>
+<p>GPG 密钥环并不只有一对公钥和私钥，如果称公钥和其对应的私钥为一个密钥对的话，那么一个 GPG 密钥环可以拥有很多个密钥对，每一个密钥对都由一个钥匙号（key ID）标识，被称为钥匙。其中有一个钥匙拥有签名其他钥匙的功能（可以在密钥环中创建钥匙），这个钥匙被称为主钥，其他的钥匙则被称为从钥。<br>GPG 列出的每个密钥环第一行一定是主钥，其余的则为从钥。 一个GPG 密钥环一共有四种类型的密钥：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">代表</th>
+<th style="text-align:center">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">sec</td>
+<td style="text-align:center">SECret key</td>
+<td style="text-align:center">主钥的私钥</td>
+</tr>
+<tr>
+<td style="text-align:center">pub</td>
+<td style="text-align:center">PUBlic key</td>
+<td style="text-align:center">主钥的公钥</td>
+</tr>
+<tr>
+<td style="text-align:center">ssb</td>
+<td style="text-align:center">Secret SuBkey</td>
+<td style="text-align:center">从钥的私钥</td>
+</tr>
+<tr>
+<td style="text-align:center">sub</td>
+<td style="text-align:center">public SUBkey</td>
+<td style="text-align:center">从钥的公钥</td>
+</tr>
+</tbody>
+</table>
+<p>至于这些钥匙的作用可以查看它们的功能，常用的功能有三种：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">功能</th>
+<th style="text-align:center">代表</th>
+<th style="text-align:center">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">S</td>
+<td style="text-align:center">Signing</td>
+<td style="text-align:center">签名和校验签名</td>
+</tr>
+<tr>
+<td style="text-align:center">E</td>
+<td style="text-align:center">Encryption</td>
+<td style="text-align:center">加密和解密信息</td>
+</tr>
+<tr>
+<td style="text-align:center">C</td>
+<td style="text-align:center">Certification</td>
+<td style="text-align:center">认证钥匙</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>E = encrypt/decrypt (decrypt with your private key of a message you received)</li>
+<li>S = sign (sign data. For example a file or to send signed e-mail)</li>
+<li>C = certify (sign another key, establishing a trust-relation)</li>
+<li>A = authentication (log in to SSH with a PGP key; this is relatively new usage)</li>
+</ul>
+<p>最后一项功能 authentication ，可以将 GPG 生成 SSH 对应的公私钥，并用于 SSH 登录。<br>注意功能是针对一对钥匙而言的，由其中的公钥和私钥共同完成。其中加密和解密分别由钥匙的公钥和私钥完成，签名和验证则分别由私钥和公钥完成。<br>一般地，GPG 密钥环中钥匙的公钥需要公布到网络上，也就意味着：</p>
+<ul>
+<li>Encryption，所有人都能用你公布的公钥加密信息，加密后的信息只有持有私钥的你才能够解密。</li>
+<li>Signing，你可以使用自己持有的私钥签名信息，所有人都能够用你公布的公钥验证签名的合法性。</li>
+<li>Certification，你可以用自己持有的私钥认证他人的公钥，从而建立信任关系。</li>
+</ul>
+<p>默认情况下，GPG 生成的密钥环将主密钥（master key）和子密钥（sub key）放在一起，主密钥用于签名和验证（usage: SC），从密钥用于加解密（usage: E）。前面给出的例子中，用于加密的密钥是 sub key，签名的密钥是 master key。</p>
+<pre><code>pub  4096R/0x5655CA935F09337F  created: 2016-11-15  expires: never       usage: SC
+sub  4096R/0x406A8B31846FF748  created: 2016-11-15  expires: 2026-11-13  usage: E
+</code></pre><p>使用子密钥的好处在于能够更换签名或者加密密钥，而不破坏主密钥的关系网络和Key ID。除了默认生成的用来加密的子密钥外，还可以添加更多的子密钥，用来签名或者用来加密。它们的公钥会随着主密钥的公钥发布，方便其他人验证或者加密。<br>为保证 master private key 的安全，将其放到离线的其他介质（比如U盘），并从钥匙环中删除。同时为方便日常使用，需要分别创建一个负责加密的 subkey（默认已有）和一个负责签名的 subkey。<br>日常加密和签名操作都通过 subkeys 进行，需要使用 master private key 时（吊销/添加 subkeys，签收他人公钥），挂载U盘然后执行如下操作就能看到 master private key。<br>实际上这种用途，更安全的方法是使用一块 <a href="https://veracrypt.codeplex.com/" target="_blank" rel="external">VeraCrypt</a> 全盘加密的 U 盘。每次需要使用 master private key 时，插入 U 盘，VeraCrypt 全盘解密，之后使用 <code>gpg --homedir</code> 选型指定路径，执行完命令后卸载 U 盘。</p>
+<pre><code>$ gpg --homedir /path/to/your/usb-drive/_gnupg --list-secret-keys
+</code></pre><h1 id="Backup-Keys"><a href="#Backup-Keys" class="headerlink" title="Backup Keys"></a>Backup Keys</h1><!-- 建议使用 VeraCrypt 隐藏盘，100K 的大小，存放公私钥及吊销证书，存放在多个不同地方的隐藏文件夹下 -->
+<p>查看并导出公私钥：</p>
+<pre><code>$ gpg --list-keys
+$ gpg -ao 0x5655CA935F09337F-public.key -export 0x5655CA935F09337F
+
+$ gpg --list-secret-keys
+$ gpg -ao 0x5655CA935F09337F-private.key --export-secret-keys 0x5655CA935F09337F
+</code></pre><p>将公私钥文件导入本机：</p>
+<pre><code>$ gpg --import _something_-public.key
+$ gpg --import _something_-private.key
+</code></pre><h1 id="gpg-conf"><a href="#gpg-conf" class="headerlink" title="gpg.conf"></a>gpg.conf</h1><p><a href="https://github.com/SeanXP/dotfiles/blob/master/gnupg/gpg.conf" target="_blank" rel="external">my gpg.conf in github</a></p>
+<p>使用 SSL 连接 keyserver：</p>
+<ol>
+<li>下载所需的<a href="https://sks-keyservers.net/sks-keyservers.netCA.pem" target="_blank" rel="external"> SSL 证书</a>与<a href="https://sks-keyservers.net/sks-keyservers.netCA.pem.asc" target="_blank" rel="external">数字签名</a></li>
+<li>校验证书的数字签名，需要提前导入公钥 0x250B7AFED6379D85</li>
+<li>拷贝 .pem 证书至对应目录，并在 gpg.conf 中注明</li>
+<li>配置默认 keyserver</li>
+</ol>
+<p>gpg.conf 相关配置：</p>
+<pre><code># Default key server
+keyserver hkps://hkps.pool.sks-keyservers.net
+# Provide a certificate store to override the system default
+# Get this from https://sks-keyservers.net/sks-keyservers.netCA.pem
+#keyserver-options ca-cert-file=/path/to/hkps.pool.sks-keyservers.net.pem
+keyserver-options ca-cert-file=~/.gnupg/sks-keyservers.netCA.pem
+</code></pre><h1 id="Other"><a href="#Other" class="headerlink" title="Other"></a>Other</h1><h2 id="RSA"><a href="#RSA" class="headerlink" title="RSA"></a>RSA</h2><ul>
+<li><a href="http://www.ruanyifeng.com/blog/2013/06/rsa_algorithm_part_one.html" target="_blank" rel="external">RSA算法原理（一）</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2013/07/rsa_algorithm_part_two.html" target="_blank" rel="external">RSA算法原理（二）</a></li>
+</ul>
+<h2 id="PGP-Pretty-Good-Privacy"><a href="#PGP-Pretty-Good-Privacy" class="headerlink" title="PGP(Pretty Good Privacy)"></a>PGP(Pretty Good Privacy)</h2><ul>
+<li><a href="https://en.wikipedia.org/wiki/Pretty_Good_Privacy" target="_blank" rel="external">Pretty Good Privacy - Wikipedia</a></li>
+<li><a href="https://www.wikiwand.com/zh-hans/%E8%89%AF%E5%A5%BD%E9%9A%B1%E7%A7%81%E5%AF%86%E7%A2%BC%E6%B3%95" target="_blank" rel="external">良好隐私密码法</a></li>
+</ul>
+<p>良好隐私密码法（英语：Pretty Good Privacy，缩写为PGP），一套用于讯息加密、验证的应用程序，采用IDEA的散列演算法作为加密与验证之用。<br>PGP的主要开发者是菲尔·齐默尔曼（Phil Zimmermann）。齐默曼于1991年将PGP在互联网上免费发布。PGP本身是商业应用程序；开源并具有同类功能的工具名为GPG（GnuPG）。PGP及其同类产品均遵守OpenPGP数据加解密标准（RFC 4880）。</p>
+<ul>
+<li>PGP加密由一系列散列、数据压缩、对称密钥加密，以及公钥加密的算法组合而成。每个步骤支持几种算法，可以选择一个使用。每个公钥均绑定唯一的用户名和/或者E-mail地址。</li>
+<li>消息采用对称加密算法加密，采用一组对称密钥。每个对称密钥只使用一次，所以也叫做会话密钥。会话密钥通过接收方的公钥来加密保护，因此只需确保仅接收方能解密会话密钥即可。加密的消息和加密的会话密钥一起发送给接收方。</li>
+<li>完整性检测被用来检查消息在传输过程中是否变更过（即验证消息完整性），而消息认证则是被用来决定消息是否确由某特定的人或实体发出（即数字签名验证）。</li>
+<li>不管是在加密消息时还是在验证签名时，都需要注意用来发送消息的公钥是否确实属于期望的接收者。简单的从某个位置下载一个公钥是没有保障的。蓄意的或意外冒名顶替是可能的。</li>
+</ul>
+<p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/PGP_diagram.svg/1000px-PGP_diagram.svg.png" alt="PGP_diagram"></p>
+<h2 id="Web-of-Trust"><a href="#Web-of-Trust" class="headerlink" title="Web of Trust"></a>Web of Trust</h2><p><a href="https://en.wikipedia.org/wiki/Web_of_trust" target="_blank" rel="external">Web of trust - Wikipedia</a><br>PGP 采用信任网结构（Web Of Trust）的分布式密钥管理，这种密钥管理体制下没有密钥证书管理机关（CA），用户之间的身份认证问题是通过介绍人（introducer）来解决的。所有的用户产生并分发他们自己的公开密钥，用户通过相互对公开密钥签名以创建一个包含所有 PGP 用户的信任网（Web Of Trust）。简单地说就是，在信任网中，没有大家都信任的中心权威机构，用户以各自为中心，相互认证公钥，相互签名公钥证书。这些签名使得用户的公钥彼此相连，形成自然的网状结构，也就是所谓的信任网。</p>
+<h2 id="Macbook-GPG-issue"><a href="#Macbook-GPG-issue" class="headerlink" title="Macbook GPG issue"></a>Macbook GPG issue</h2><p>Macbook 下，出现下面问题：</p>
+<pre><code>gpg-agent[30845]: command get_passphrase failed: No such file or directory
+gpg: problem with the agent: No such file or directory
+gpg: decryption failed: No secret key
+</code></pre><p>即需要输入 GPG 私钥密码的时候，没有弹出输入框，而是直接默认输入失败。<br><a href="https://github.com/IJHack/qtpass/issues/156" target="_blank" rel="external">解决方案</a>，可以通过 <a href="https://gpgtools.org/" target="_blank" rel="external">GPGTools</a> 的 pinentry-mac (pinentry for GPG on Mac) 解决：</p>
+<pre><code>brew install pinentry-mac
+echo &quot;pinentry-program /usr/local/bin/pinentry-mac&quot; &gt;&gt; ~/.gnupg/gpg-agent.conf
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Reference&quot;&gt;&lt;a href=&quot;#Reference&quot; class=&quot;headerlink&quot; title=&quot;Reference&quot;&gt;&lt;/a&gt;Reference&lt;/h1&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.gnupg.org/&quot;&gt;The GNU Privacy Guard&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.wikiwand.com/zh-hans/GnuPG&quot;&gt;GPG 维基百科&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.ruanyifeng.com/blog/2013/07/gpg.html&quot;&gt;GPG 入门教程&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.madboa.com/geek/gpg-quickstart/&quot;&gt;GPG Quick Start&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://help.ubuntu.com/community/GnuPrivacyGuardHowto&quot;&gt;Gnu Privacy Guard Howto&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://wiki.archlinux.org/index.php/GnuPG&quot;&gt;ArchLinux GunPG&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="GitHub" scheme="http://seanxp.com/tags/GitHub/"/>
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>真田丸</title>
+    <link href="http://seanxp.com/2016/TV-sanadamaru/"/>
+    <id>http://seanxp.com/2016/TV-sanadamaru/</id>
+    <published>2016-12-19T13:42:42.000Z</published>
+    <updated>2017-02-03T11:12:40.000Z</updated>
+    
+    <content type="html"><![CDATA[<div align="center"><br><img src="http://ww3.sinaimg.cn/large/006tNc79jw1fawfvd5fulj30u00u0djw.jpg" width="540" height="540" alt="真田丸"><br>NHK 大河剧《真田丸》播送一年，「完结」撒花！<br></div>
+
+<a id="more"></a>
+<h3 id="相关网站"><a href="#相关网站" class="headerlink" title="相关网站"></a>相关网站</h3><ul>
+<li>官方网站：<a href="http://www.nhk.or.jp/sanadamaru/" target="_blank" rel="external">NHK大河ドラマ『真田丸』</a></li>
+<li>豆瓣：<a href="https://movie.douban.com/subject/25884841/" target="_blank" rel="external">真田丸</a></li>
+<li>Bilibili视频源：<a href="http://www.bilibili.com/video/av7604530/" target="_blank" rel="external">真田丸 满弹幕合集</a></li>
+</ul>
+<h3 id="我看真田丸"><a href="#我看真田丸" class="headerlink" title="我看真田丸"></a>我看真田丸</h3><p>从《真田丸》入坑大河剧，开始看剧时对日本战国史完全不了解，一边看剧一边上 Google 查资料，看剧途中还被 B 站弹幕安利了好多日本战国历史和人物（更多的是外号和各种野史…不得不说日本战国类游戏也是安利战国历史的一大利器）。</p>
+<p>很好看的日剧，每集都会有一些笑料包袱（源三朗日常懵逼、口啪、权四情史、乌龟猴子画外音等），而且 B 站弹幕也很幽默风趣，简直是我这一年日剧方面的「周指活」。看了下 NKH 之前的大河剧，包括《武田信玄》、《风林火山》、《坂上之云》，就会发现今年的大河剧与往届格外不同，往届大河剧偏向历史剧的厚重感，笑料包袱少，更没有类似《家康という男》这样俏皮的 BGM 了。<br>的确，对于日本人而言，日本战国日剧如同我们看待三国西游般熟悉，事隔多年后一味的更换演员班底重演一遍，如果没有一点自己的特色，很难吸引”观众日益增长的文化需求”。</p>
+<p>当然，作为一部「严肃」的大河正剧，自然也少不了各式各样的历史人物，所共同构建出的浮世绘。我尤其喜欢看人物们是如何为各自信念而做出选择，又是如何推动历史的车轮滚滚前进。小人物也许就是触发历史世界线变更的导火索。</p>
+<p>开始是因为堺雅人才追的这部剧，而追堺雅人又是因为喜欢其主演的《legal high》。最近几年得闲看过几部评分不俗的日剧（《半泽直树》、《仁医》、《金牌女王》、《我的恐怖妻子》等），认识了一堆彪戏达人，又跟着他们看了不少新出的好剧。<br>如此良性循环，也是节省了挑剧的诸多困扰。日剧主题明确轻快，节奏感强，加上近年来各种脑洞大开，有很多好剧都值得一看。相比国内的电视剧，就对我就没有太大吸引力。不过的确很难想象国内如何能拍出《Wood Job》这样清新脱俗颇为励志的电影出来。</p>
+<p>期间因为等 NHK 更新太慢，又被安利了《武田信玄》，同样是一部很赞的大河剧，正好弥补了《真田丸》的历史空白，当作前传看正好。<br>从《武田信玄》到《真田丸》，纵观日本战国时代末期，真田三代都为各自所坚持的信念奋斗终生。<strong>信浓豪族真田幸隆一遇武田相随半生，真田昌幸虽表里比兴却终生追随信玄，真田信繁沉浮一生只为报太阁之恩。</strong></p>
+<p>看完第 50 话「最终回」，一边听着服部隆之的配乐《ふたりでひとつ》，一边翻看<a href="http://www.nhk.or.jp/sanadamaru/special/subject/subject56.html" target="_blank" rel="external">真田丸回忆录</a>，源次郎的一生如画卷般徐徐展开，感慨良多，不一而足。</p>
+<p><img src="http://ww1.sinaimg.cn/large/006tNc79gw1fawft9whyzj30hv0iagpe.jpg" alt="真田信繁"></p>
+<p>周更的好处是播放时间持久，电视台可以靠一部作品持续吸引观众长达一年的注意力，广告营销效果自然好。但是对于观众而言，不易将剧情连贯起来，因此我打算偷得几日闲空再看一遍《真田丸》。</p>
+<h3 id="感悟"><a href="#感悟" class="headerlink" title="感悟"></a>感悟</h3><p>我平生喜爱追求效率，但却不觉得再看一遍如此长达 50 集的剧是浪费时间。我认为无论是书（小说也好，名著也罢）、影视（电视剧，电影）、音乐（古典，流行）、包括漫画（大爱日漫），凡是好的，觉得有价值的，看看听听不无益处，若是从中能够获得些许心得更好。<br>看一篇电影，观一部影视，代入其中，就仿佛多活一世多经一生，细心体会则有不少感悟于其中。现在的人终日沉浸在冗余信息的海洋里，注意力被诸多事物所分散，加上物质生活的极大丰富，往往忽略内心精神世界的构建。而没有内心精神世界的人，是空虚的人，精神的衰败带来个性的消亡，最后泯然众人随波逐流矣。</p>
+<p>怕什么真理无穷，进一寸有一寸的欢喜；<br>愁什么人生苦短，拼一分有一分的收获。</p>
+<p>今观此剧，能识此人，何其幸哉！<br>真田左卫门佐信繁，参上！</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>看完《真田丸》之后，为了弥补自己关于真田信繁之前的日本战国史空白，又观看了 1996年的NHK大河剧《<a href="https://www.bilibili.com/video/av3389329/" target="_blank" rel="external">秀吉</a>》。<br>相比《真田丸》，二十年前所拍摄的《秀吉》毫不逊色，虽然画质因为时代原因比较模糊，但是我还是想说一句「宁宁美如画」！而且主人公（丰臣秀吉）的个人经历与时代意义相比其手下的马回众（真田信繁）更具有传奇性。<br>竹中直人的丰臣秀吉，泽口靖子的宁宁，高岛政伸的丰臣秀长（多好的弟弟秀长，为什么二十年后去北条吃茶泡饭了:P），渡哲也的织田信长，市原悦子的大政所，哪一个挑出来都是可以再出一部大河剧当主役的。<br>这部剧描述了社会底层农民木下秀吉经过个人奋斗（自然也要考虑到历史的进程），成为日本天下人的故事。边看剧，边查阅丰臣秀吉的 <a href="https://www.wikiwand.com/zh/%E4%B8%B0%E8%87%A3%E7%A7%80%E5%90%89" target="_blank" rel="external">Wiki</a>，越是由衷地钦佩秀吉。<br>当然，作为主人公，历史上很多秀吉的黑点，在剧中都由其他人物背黑锅（就像真田丸的关键事件都由源次郎触发一般），看剧时需要抱着休闲和批判思考的态度。<br>秀吉的逆袭，离不开其领导（织田信长）的赏识、其母亲（大政所）的支持、其正室（宁宁）的劝诫、其弟弟（丰臣秀吉）的钱（弟弟真的是政务小能手啊）、其家臣（竹中半兵卫、黑田官兵卫等）的计谋、其对手（明智光秀等）的“帮助”。<br>最后几集一集一回忆杀真是不忍看，人生落幕之际总是伴随着众多一共奋斗而来的亲朋好友的离去。而《秀吉》的结束以秀吉逝世奔向太阳（呼应主题「太阳之子」）结束，而秀吉之死也是丰臣家族由盛而衰的转折点，对应《真田丸》的后半部分，这里不再赘述。</p>
+<p>丰臣朝臣羽柴关白秀吉，献给所有的梦想家！</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;div align=center&gt;&lt;br&gt;&lt;img src=&quot;http://ww3.sinaimg.cn/large/006tNc79jw1fawfvd5fulj30u00u0djw.jpg&quot; width=&quot;540&quot; height=&quot;540&quot; alt=&#39;真田丸&#39;/&gt;&lt;br&gt;NHK 大河剧《真田丸》播送一年，「完结」撒花！&lt;br&gt;&lt;/div&gt;
+    
+    </summary>
+    
+      <category term="TV" scheme="http://seanxp.com/categories/TV/"/>
+    
+    
+      <category term="Review" scheme="http://seanxp.com/tags/Review/"/>
+    
+      <category term="History" scheme="http://seanxp.com/tags/History/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Github 学生包申请</title>
+    <link href="http://seanxp.com/2016/GitHub-Student-Developer-Pack-md/"/>
+    <id>http://seanxp.com/2016/GitHub-Student-Developer-Pack-md/</id>
+    <published>2016-09-06T00:14:37.000Z</published>
+    <updated>2017-02-03T08:06:25.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>GitHub Student Developer Pack - The best developer tools, free for students.</p>
+<a id="more"></a>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>There’s no substitute for hands-on experience, but for most students, real world tools can be cost prohibitive. That’s why we created the GitHub Student Developer Pack with some of our partners and friends: to give students free access to the best developer tools in one place so they can learn by doing.</p>
+<p>GitHub 为学生提供学生包优惠，内含很多开发者工具，对经济不太富裕的学生很有帮助：</p>
+<ul>
+<li>AWS educate, Student Developer Pack members receive $15 in bonus AWS credits for a total of $50-$115;</li>
+<li><font color="red">DigitalOcean, $50 in platform credit for new users;</font></li>
+<li>DNSimple, Personal hosted DNS plan (normally $5/month) for one year;</li>
+<li><font color="red">GitHub, Unlimited private repositories (normally $7/month) while you are a student.</font></li>
+<li>Microsoft Azure cloud services, Microsoft Azure, Visual Studio Community 2015 and the rest of the Microsoft developer tools while you’re a student;</li>
+<li><font color="red">Namecheap, One year domain name registration on the .me TLD (normally $18.99/year);</font></li>
+<li><font color="red">Namecheap, One year SSL certificate (normally $9/year);</font>
+
+</li>
+</ul>
+<p><strong>只要你是学生，就可以提出申请！</strong></p>
+<h2 id="Steps-to-apply"><a href="#Steps-to-apply" class="headerlink" title="Steps to apply"></a>Steps to apply</h2><h3 id="Step-1-Create-your-personal-account-in-GitHub"><a href="#Step-1-Create-your-personal-account-in-GitHub" class="headerlink" title="Step 1. Create your personal account in GitHub"></a>Step 1. Create your personal account in GitHub</h3><p>GitHub Account Sign Up: <a href="https://github.com/join" target="_blank" rel="external">https://github.com/join</a><br>如果已经有 GitHub 账户，可以跳过此步骤。</p>
+<h3 id="Step-2-Get-your-pack"><a href="#Step-2-Get-your-pack" class="headerlink" title="Step 2. Get your pack"></a>Step 2. Get your pack</h3><p>学生包申请网址：<a href="https://education.github.com/pack/" target="_blank" rel="external">GitHub Student Developer Pack</a><br>点击按钮 <strong>Get your pack</strong>，进入申请页面。申请需要身份认证（两种认证方式任选一种）：</p>
+<ul>
+<li>学生邮箱认证，简单方便，安全系数高，成功概率低；</li>
+<li>学生证件认证，复杂繁琐，安全系数低，成功概率高；</li>
+</ul>
+<h4 id="学生邮箱认证"><a href="#学生邮箱认证" class="headerlink" title="学生邮箱认证"></a>学生邮箱认证</h4><p>如果你有学校 edu 邮箱，可以添加进个人邮箱，以认证学生身份。此方法由于被部分国人频繁使用，造成 GitHub 对 edu 邮箱的不信任，因此成功率可能较低。<br><strong>但是由于此方法简单方便且安全系数高，不会泄露过多隐私，建议尝试一次申请，若申请不成功，再改为学生证申请。</strong></p>
+<h4 id="学生证件认证"><a href="#学生证件认证" class="headerlink" title="学生证件认证"></a>学生证件认证</h4><p>如果没有学校 edu 邮箱，或学校邮箱申请失败，可以通过上传学生证件照来认证学生身份。</p>
+<ol>
+<li>在纯色背景（白色最佳，例如在 A4 打印纸上）拍摄学生证件，具有明确学校名称，日期，姓名等。</li>
+<li><p>附上关键部分的英文翻译，可参考网上模板（出国留学者经常需要翻译学生证件）：</p>
+<pre><code>Postgraduate Certificate
+Name:
+Gender:
+Student No:
+School:
+College:
+Discipline:
+Date of admission:
+Date of issue:
+</code></pre></li>
+<li>（可选）身份证 ID 建议打码并在图片角落注明打码原因。</li>
+<li><p>（可选）学生证件照片添加签注（在证件头像附近添加，保证难以 PS 掉），以防他用。</p>
+<pre><code>Apply for GitHub Student Developer Pack.
+</code></pre></li>
+</ol>
+<h3 id="Step-3-Waiting-for-a-response-email"><a href="#Step-3-Waiting-for-a-response-email" class="headerlink" title="Step 3. Waiting for a response email"></a>Step 3. Waiting for a response email</h3><p>大概一周时间内，你的 GitHub Primary Email 就会收到一封 GitHub 的回复邮件，成功申请的回复如下所示：</p>
+<pre><code>Welcome to the Student Developer Pack
+
+Hey XXXXX (Sean Guo), we have some awesome news
+
+We&apos;ve upgraded you to a plan with unlimited free private repositories, which will be free for the next two years.
+After that, you&apos;ll get an email saying that your coupon is expiring.
+You can reapply for another coupon if you still have academic status.
+We don&apos;t have any collaboration limits, so any group projects you may encounter can be hosted via your account.
+</code></pre><p>即申请已经通过！<br>部分优惠将持续两年时间（例如 GitHub unlimited free private repositories），而且到期以后，如果你还是学生，就可以再次申请！<br>此时可以打开优惠页面：<a href="https://education.github.com/pack/offers" target="_blank" rel="external">https://education.github.com/pack/offers</a> ，可以看到所有已经开通的优惠信息。</p>
+<p><strong>Have an Octotastic day!</strong></p>
+<h2 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h2><ul>
+<li><a href="https://www.mf8.biz/github-education-pack/" target="_blank" rel="external">Github 学生包申请教程</a></li>
+<li><a href="https://github.com/ivmm/Student-resources" target="_blank" rel="external">学生优惠资源集锦</a></li>
+<li><a href="https://www.v2ex.com/t/301432" target="_blank" rel="external">学生优惠资源集锦-V2EX</a></li>
+</ul>
+<h2 id="One-more-thing…"><a href="#One-more-thing…" class="headerlink" title="One more thing…"></a>One more thing…</h2><p>DigitalOcean 是一家性价比极高的 VPS 服务商。最低的套餐是 5 刀的 VPS 套餐，我现在就是用的这一款（512 MB Memory / 20 GB Disk / SFO1 - CentOS 6.7 x64）。<br>获得的 GitHub 包中有 DigitalOcean $50 的优惠码，也就是说，使用最便宜的 VPS ($5/month) ，你可以免费使用10个月的VPS！VPS 有以下好处：</p>
+<ul>
+<li>搭建在国外的 VPS，可以快速下载国外的软件源或资源，因此可以将 VPS 作为你的云端开发机。</li>
+<li>搭建在国外的 VPS，可以配置代理，代理你的一切上网流量，可以更好的进行科研工作。</li>
+<li>善用 VPS 快照功能，快速搭建开发环境，遇到问题可以快速回滚。</li>
+</ul>
+<p>不过提供的 $50 优惠码，是 <strong>“$50 in platform credit for new users”</strong>，如果你还没有注册 DigitalOcean 账户，可以通过以下网址注册：</p>
+<ul>
+<li><a href="https://m.do.co/c/0ffb835591de" target="_blank" rel="external">我的推广链接</a>，注册的 DigitalOcean 帐号可以立刻获得 $10，即可以免费体验2个月VPS；并且你在 DigitalOcean 上进行消费，我也会获得一些优惠！</li>
+<li><a href="https://www.digitalocean.com/" target="_blank" rel="external">官方注册链接</a>，将不会获得 $10 的推广优惠。</li>
+<li><a href="http://seanxp.com/2016/shadowsocks/">Shadowsocks配置</a>，立刻在自己的VPS上搭建代理吧！</li>
+</ul>
+<p>注册成功以后，在 Billing 页面填写优惠码即可获得 $50。<br>如果是已经注册过的用户，可以参考下面网址，通过发工单的形式申请换取$50优惠。</p>
+<ul>
+<li><p><a href="https://www.mf8.biz/digitalocean-github-pack/" target="_blank" rel="external">DigitalOcean 的学生包代金券使用教程</a></p>
+<ul>
+<li>不过呢，DO 会需要至少充值 5 美元 才能激活账户，如果你想空手套白狼，其实也可以申请这 5 美元 的退款，但希望你不要这么做。</li>
+<li>注意：DigitalOcean 不允许一个 PayPal、信用卡 注册多个账户，否则会有封停的危险。</li>
+<li><p>已经有 DO 账号，无法直接使用优惠码，此时不用重新开一个帐号，可以通过发工单(ticket)向客服人员反映：</p>
+<pre><code>标题：
+I can not use Github’s Student Developer Pack
+
+内容：
+Hello,
+I have used before DigitalOcean products, and now I passed my Github Student Developer Pack, but can not activate my code.
+
+My code is: e89da76f57f2
+
+Please help me activate this code.
+
+Thank you.
+</code></pre></li>
+</ul>
+</li>
+</ul>
+<p>DigitalOcean 的处理效率很好，我的工单大概20分钟就得到了处理：</p>
+<pre><code>There has been a response to your ticket:
+
+Hey there,
+
+Thanks for reaching out to us!
+
+I went ahead and added the GitHub promo code to your account. I hope that helps you get started with your DO journey! :)
+
+If the support was helpful, feel free to rate your ticket experience!
+
+Thank you for being a DigitalOcean customer, always let us know if you have any questions! We are here to help.
+
+Platform Support Specialist - DigitalOcean
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;GitHub Student Developer Pack - The best developer tools, free for students.&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="GitHub" scheme="http://seanxp.com/tags/GitHub/"/>
+    
+      <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Khan Academy - Finance and capital markets</title>
+    <link href="http://seanxp.com/2016/Khan-Finance/"/>
+    <id>http://seanxp.com/2016/Khan-Finance/</id>
+    <published>2016-05-10T06:40:17.000Z</published>
+    <updated>2017-02-03T08:08:30.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>天下熙熙，皆为利来；天下壤壤，皆为利往。<br>夫千乘之王，万家之侯，百室之君，尚犹患贫，而况匹夫编户之民乎！<br>《史记 货殖列传》<br></blockquote><br><a id="more"></a></p>
+<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>可汗学院的金融（Finance）课程从最基本的概念，结合实际讲述了生活中最常见的金融问题，同时，也可以作为课堂上知识的很好补充。主要内容包括利率，股票，收益率，融资，债券，抵押贷款，通货膨胀等内容。</p>
+<ul>
+<li><a href="https://www.khanacademy.org/economics-finance-domain/core-finance" target="_blank" rel="external">Khan Academy - Finance and capital markets</a></li>
+<li><a href="http://open.163.com/special/Khan/finance.html" target="_blank" rel="external">可汗学院公开课：金融学</a></li>
+</ul>
+<h1 id="利息介绍"><a href="#利息介绍" class="headerlink" title="利息介绍"></a>利息介绍</h1><h2 id="利息"><a href="#利息" class="headerlink" title="利息"></a>利息</h2><p>利息(interest): 本质是钱的租金。从别处借的钱, 即本金(principal)，一定时间后归还，并附带一定的租金，即利息。常以百分比表示，<code>利息率 = 利息 / 本金</code>。</p>
+<h2 id="单利与复利"><a href="#单利与复利" class="headerlink" title="单利与复利"></a>单利与复利</h2><p>单利(simple interest): 本金不变的利息计算方式；</p>
+<pre><code>0     P
+1     P + rP = P(1+r)
+2     P + rP + rp = P(1+2r)
+...
+t     P + rP + rP + … rP = P(1+tr)
+</code></pre><p>复利(compound interest): 上一年的利息要加入本金，当作下一年的本金，计入利息计算中去。</p>
+<pre><code>0      P
+1      P+r = P(1+r)
+2      P(1+r)(1+r)
+3      P(1+r)(1+r)(1+r)
+...
+t      P*(1+r)^t
+</code></pre><h1 id="现值"><a href="#现值" class="headerlink" title="现值"></a>现值</h1><p>现值(Present value)：指资金折算至基准年的数值，也称<code>折现值</code>、也称<code>在用价值</code>，是指对未来现金流量以恰当的折现率进行折现后的价值。<br>现值是如今和将来（或过去）的一笔支付或支付流在当今的价值。或理解为：</p>
+<blockquote>
+<p>成本或收益的价值以今天的现金来计量时，称为现值。</p>
+</blockquote>
+<h2 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h2><p>比如假设最安全的投资收益为5%, 那么1年后的$110就是现在的<code>$110 / (1+5%) = $104.76</code>；(这里的贴现率假设为5%，即收益率的逆向)即用$104.76投资一年，可以得到1年后的$110。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Choice</th>
+<th style="text-align:center">1</th>
+<th style="text-align:center">2</th>
+<th style="text-align:center">3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Now / Year 1</td>
+<td style="text-align:center">$100</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$20</td>
+</tr>
+<tr>
+<td style="text-align:center">Year 2</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$50</td>
+</tr>
+<tr>
+<td style="text-align:center">Year 3</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$110</td>
+<td style="text-align:center">$35</td>
+</tr>
+</tbody>
+</table>
+<p>当投资收益率为5%时，哪个选择更划算呢？</p>
+<ul>
+<li><p>以 Year 3 为基准年</p>
+<pre><code>Choice 1 = $100 * 1.05 * 1.05 = $110.25
+Choice 2 = $110
+Choice 3 = $20 * 1.05^2 + $50 * 1.05 + $35 = $109.55
+</code></pre><p>  可以发现，5% 的投资收益率下，Choice 1 最划算。</p>
+</li>
+<li><p>以Year 1为基准年</p>
+<pre><code>Choice 1 = $100
+Choice 2 = $110 / (1 + 5%)^2 = $99.77
+Choice 3 = ($35 / 1.05 + $50) / 1.05 + $20 = $99.365
+</code></pre><p>  可以看出，Choice 1 的现值最高，最划算。</p>
+</li>
+</ul>
+<p>现值（贴现、折现）的计算与复利（累积）互为逆过程。</p>
+<p>那么，如果贴现率不是5%, 降为2%呢？(即投资率下降，钱不好挣了)<br>以 Year 1 为基准年计算现值：</p>
+<pre><code>Choice 1 = $100
+Choice 2 = $110 / (1 + 2%) ^ 2 = $105.72
+Choice 3 = ($35 / (1+2%) + $50) / (1+2%) + $20 = $102.66
+</code></pre><p>即利率降低到2%, 最好选择不是 Choice 1, 而是 Choice 2 了。当利率下降(例子中的5% -&gt; 2%)，未来支付的现值(例子中Year3的$110的现值)上升。<br>当利率下降，未来支付的现值上升。简单理解，利率下降，就是钱不好挣了，那么未来的110$比起之前好挣的时候(5%)，更值钱了。</p>
+<p>那么，如果第一年利率1%, 第二年5%呢？（以Year 1 为基准年）</p>
+<pre><code>Choice 1 = $100
+Choice 2 = $110 / (1+5%)^2 = $99.77 (按两年利率5%计算)
+Choice 3 = $20 + $50/1.01 + $35/1.01^2 = $101.25
+</code></pre><p>此时，Choice 3反而成最好的了；</p>
+<h2 id="相关术语"><a href="#相关术语" class="headerlink" title="相关术语"></a>相关术语</h2><ul>
+<li>净现值(NPV, Net Present Value)：将投资的未来现金流量，全部折现成投资始日的价值，称为该投资的净现金流量，或称为净现值（NPV, Net Present Value）。<code>净现值 = 未来现金净流量现值-原始投资额现值</code>。假设投资的净现值为正数，代表该投资的结果可以增加企业的价值;反之，如果投资评估的净现值为负数，代表此投资会减少企业的价值，不应该接受。</li>
+<li>内部收益率(IRR, Internal Rate of Return)：资金流入现值总额与资金流出现值总额相等、净现值等于零时的折现率。IRR是一项投资渴望达到的报酬率，该指标越大越好。<blockquote>
+<p>我今天投你100万，5年后的今天通过你这个案子我收回了1000万，那么我在这个案子上的IRR＝58%。意思是你投资100块钱，每年58%的利息，复利计算（100 * (1 + 58%)），5年后收回的钱就是1000块。</p>
+</blockquote>
+</li>
+</ul>
+<h1 id="资产负债表"><a href="#资产负债表" class="headerlink" title="资产负债表"></a>资产负债表</h1><p>资产负债表（the Balance Sheet）亦称财务状况表，表示企业在一定日期（通常为各会计期末）的财务状况（即资产、负债和业主权益的状况）的主要会计报表，资产负债表利用会计平衡原则，将合乎会计原则的资产、负债、股东权益”交易科目分为“资产”和“负债及股东权益”两大区块，在经过分录、转帐、分类帐、试算、调整等等会计程序后，以特定日期的静态企业情况为基准，浓缩成一张报表。其报表功用除了企业内部除错、经营方向、防止弊端外，也可让所有阅读者于最短时间了解企业经营状况。</p>
+<ul>
+<li>资产（Asset）：资产，指一些有用的东西，将来它可以带给你经济利益。资产指任何公司、机构和个人拥有的任何具有商业或交换价值的东西。</li>
+<li>负债及股东权益（equity）：实际所有的资本。</li>
+</ul>
+<blockquote>
+<p>资产 = 负债 + 权益</p>
+</blockquote>
+<h2 id="房产示例"><a href="#房产示例" class="headerlink" title="房产示例"></a>房产示例</h2><p>例如，我有25万的现金，我借银行75万，买了一套100万的房子：</p>
+<ul>
+<li>我的资产：一套100万的房子；</li>
+<li>我的负债：75万银行贷款；</li>
+<li>我的权益：25万。<br>权益，可以理解为，把总资产折算成钱，返还贷款（别人的资产）以后，所剩余的钱（所有者资产、我自己的资产、权益）。<blockquote>
+<p>权益 = 资产 - 负债</p>
+</blockquote>
+</li>
+</ul>
+<p>一般向银行贷款，都需要一定资产的抵押。比如贷款75万，可以拿100万的房子做抵押。如果无法还款，银行就回收回抵押资产，然后出售，或者拍卖。如果卖的价格低了，比如80万，则银行收回75万，留给我的只有5万，即用我的权益来垫付资产损失。</p>
+<h2 id="逐日盯市"><a href="#逐日盯市" class="headerlink" title="逐日盯市"></a>逐日盯市</h2><p>逐日盯市(Marking to Market)：一段时间，我对我的资产（例如100万买来的房子）进行重新估值，确定价值。确定价值的最好方法，是看和它相似资产的价值是多少。<br>比如我邻居的房子和我一样，它卖了80万，我的资产就不再是100万的房子，而是80万。但我还欠银行75万，所以房价的降低，是我的权益收到了损失，我的权益只有5万了。<br>但如果邻居一样的房子卖了150万（房价上涨50%），那我的权益就从25万变成75万(权益增值了200%)。</p>
+<blockquote>
+<p>所谓逐日盯市制度，亦即每日无负债制度、每日结算制度，是指在每个交易日结束之后，交易所结算部门先计算出当日各期货合约结算价格，核算出每个会员每笔交易的盈亏数额，以此调整会员的保证金帐户，将盈利记入帐户的贷方，将亏损记入帐户的借方。若保证金帐户上贷方金额低于保证金要求，交易所通知该会员在限期内缴纳追加保证金以达到初始保证金水平，否则不能参加下一交易日的交易。</p>
+</blockquote>
+<h1 id="房屋净值贷款"><a href="#房屋净值贷款" class="headerlink" title="房屋净值贷款"></a>房屋净值贷款</h1><p>房屋净值贷款(HEL, House Equity Loan), 是一种由二次抵押品抵押的消费者贷款，允许房主以<code>房屋权益</code>做抵押，可用于消费也可用于投资，是目标开放性贷款。<br>贷款基于房主权益和房屋市场限价的利差，也作为资产抵押支持的证券做抵押品。</p>
+<h2 id="HEL示例"><a href="#HEL示例" class="headerlink" title="HEL示例"></a>HEL示例</h2><p>接上面的贷款买房例子（现金25万，贷款75万，买100万的房，房价涨到150万）：<br>现在房价150万，银行贷款75万，我有75万的权益。但是权益不能直接花，怎么办？去银行贷款，拿权益做抵押！在银行贷款了32.5万！</p>
+<p>现在我的资产：<code>150万房子 + 32.5万现金 = 182.5万资产</code></p>
+<ul>
+<li>负债：买房贷款75万 + 权益贷款32.5万</li>
+<li>权益：75万，没变；</li>
+</ul>
+<p>我花了10万美元旅游，负债没变，即我的权益从75万降低到65万；即我通过抵押权益贷款，消费了我的权益！</p>
+<h2 id="租房？买房？"><a href="#租房？买房？" class="headerlink" title="租房？买房？"></a>租房？买房？</h2><p>假如有两个一模一样的房子，1号房子一月租金3000元（年租金3.6万），2号房子售价 100万；</p>
+<ol>
+<li>租房<br> 我有25万现金，打算租房，将25万存到银行，假设存款利率为4%, 一年利息1万；<br> 则每年租房除去利息，还有2.6万房贷，需要通过工资还清。</li>
+<li>买房<br> 我有25万现金，我打算买房，从银行贷款75万，假设贷款年利率为6%，一年要还4.5万，平均每月3750元。但是，还贷款使得税收降低。比如我年薪10万，上税30%, 即3万；现在要还贷款4.5万，我实际挣了5.5万，按30%税收，只需上交16500元，则节省了1.35万的税收。<br> 每年上交房屋财产税(property tax), 按1%算，100万的房子，税收为1万。合计之后，每年需要还 银行贷款4.5万 + 房屋财产税1万 - 节省税收1.35万 = 4.15万;<br> 则每年租房除去利息，还有4.15万房贷，需要通过工资还清。这样算下来，这种情况下租房更划算。</li>
+</ol>
+<h2 id="房价上涨原因"><a href="#房价上涨原因" class="headerlink" title="房价上涨原因"></a>房价上涨原因</h2><p>通过分析2000~2004年的相关数据：</p>
+<ul>
+<li>需求方：人口增长每年约1.5%，人均收入平均降低3%</li>
+<li>供给方：房价现有储备约115million; 平均每年新建1.8milliom, 4年下来约增长6%;<br>那么为什么房价2004年比2000年上涨46%, 2006年比2000年上涨88%呢？这种现象不符合经济学的供求关系。而且自2000年依赖，房价相比以前的时代，上涨的超快。</li>
+</ul>
+<blockquote>
+<p>房价上涨的唯一原因：人民买房越来越容易了，银行贷款的限制越来越低。越多的人购买房子，使得房价被哄抬的越来越高。</p>
+</blockquote>
+<p>在七八十年代，即使用来租房的钱超过贷款买房的利息，很多人还是选择租房。因为贷款买房需要一定的首付，一份稳定的工作，良好的信用，很多人不符合贷款条件。而21世纪，贷款的限制条件变松了，很多人只需要攒一定的首付，就可以贷款了。</p>
+<p>2000~2006期间，循环因果链：</p>
+<blockquote>
+<p>贷款限制条件变松-&gt;更多的人贷款买房-&gt;房价上涨-&gt;贷款违约率下降(即使银行贷款给一个游手好闲的人，只要其还不上贷款，卖掉其抵押的房子，银行也不亏)-&gt;贷款的感知风险(Perceived lending risk)下降-&gt;更多人愿意放贷款-&gt;贷款标准变低，融资更容易。</p>
+</blockquote>
+<p>而这一切都是以对房价上涨的自信作为前提。</p>
+<h1 id="公司资产"><a href="#公司资产" class="headerlink" title="公司资产"></a>公司资产</h1><p>增加公司资本的三种方式(raise capital)：</p>
+<ol>
+<li>借债(debt, borrow money)</li>
+<li>权益(equity), 卖股份(sell shares of itself)</li>
+<li>使公司盈利</li>
+</ol>
+<p>公司资产(asset)分为借债与权益两部分(assets = liabilities + equity, 我们所拥有的equity是我们的资产减去我们的负债)。公司资产减去借债，将剩下的权益平分得到股票的股价。</p>
+<blockquote>
+<p>「股票的本质」 （通俗的讲，即把公司卖掉，得到等价与公司资产的钱，先还了借债的钱，最后剩下的钱，按股份平分）</p>
+</blockquote>
+<h2 id="证劵"><a href="#证劵" class="headerlink" title="证劵"></a>证劵</h2><p>证券(security), 一种能够用来购买和出售的东西；</p>
+<ul>
+<li>在权益市场(equity world)的证券叫做股票(stock)；</li>
+<li>在债务市场(debt world)的证券叫做债券(bond)。</li>
+</ul>
+<p>借债可以认为是公司向银行贷款（债务市场），而权益股票可以认为是公司向群众借钱，发售给群众证券（权益市场）。借债可以以债券bond的形式发布，即借条。<br>零息债券(zero coupon), 在偿还贷款前并不支付利息。利息包含在最后的还款中，隐含支付。例如500元购买某公司1000元的债券，待到债券期限日，可以换得1000元。</p>
+<h2 id="股份、股票-share-stock"><a href="#股份、股票-share-stock" class="headerlink" title="股份、股票(share, stock)"></a>股份、股票(share, stock)</h2><p>购买股票，即成为公司的部分所有者。与此相反，债券不同于股票，购买债券，使你成为公司债权人的一部分。</p>
+<ul>
+<li>作为债权人，公司是欠你钱，必须要给你还钱（没现金，变卖公司资产也要还）；</li>
+<li>作为所有者，公司不承诺还钱，公司的财产大家按股份平摊，有盈利一同平摊，破产大家都有损失。</li>
+</ul>
+<h3 id="投资-investing"><a href="#投资-investing" class="headerlink" title="投资(investing)"></a>投资(investing)</h3><p>1美元1股份的股票是否比10美元1股份的股票便宜？股票的股价是根据公司当前的价值除以发行股票的总额的比值，同样的公司同样的公司资产，发行的股份越多，对应的股价越便宜。<br>市值(market value)是指公司资产在市场上的估算价值。资产的账面价值(The book value of the assets)是账面上的资产估值。</p>
+<h3 id="卖空-Short-Sale"><a href="#卖空-Short-Sale" class="headerlink" title="卖空(Short Sale)"></a>卖空(Short Sale)</h3><blockquote>
+<p>a short sale is some type of a bet that a stock can go down.<br>一种预期股票会下跌的赌博。</p>
+</blockquote>
+<p>卖空股票原理：</p>
+<ol>
+<li>向经纪公司借若干股股票（经纪公司拥有很多人的股票，可以借出来一些，但是要收取佣金费用）；</li>
+<li>抛售股票，得到现金（有了现金，但也有了股票债务）；</li>
+<li>等到股票下降，以低价格购入相同股的股票，还给经纪公司（对于股票在经纪公司的股东们，他们完全对此交易不知情；但是他们也会收益，经纪公司会支付股东们一些报酬。）</li>
+</ol>
+<p>经纪公司就是从借股票的人与存股票的人之间赚取差价。类比“银行贷款”。<br>做空是一种股票、期货等的投资术语，是股票、期货等市场的一种操作模式。和“做多”是反的，理论上是先借货卖出，再买进归还。</p>
+<blockquote>
+<p>做空是指预期未来行情下跌，将手中股票按目前价格卖出，待行情跌后买进，获取差价利润。其交易行为特点为先卖后买。做空实际上有点像商业中的赊货交易模式。这种模式在价格下跌的波段中能够获利，就是先在高位借货进来卖出，等跌了之后再买进归还。比如预计某一股票未来会跌，就在当期价位高时借入此股票（实际交易是买入看跌的合约）卖出，再到股价跌到一定程度时买进，以现价还给卖方，产生的差价就是利润。</p>
+</blockquote>
+<p>卖空者若要挣钱，就得在股票高价时卖空（借股票卖），在股票低价时平仓（买股票还），因此，如果市场有这样的卖空者，会使得股票的价格不会太高，也不会太低。即卖空者使得股票的波动更平缓。<br>其实任何一个炒股的人，无论时卖空者，还是正常炒股者，都是低价买，高价卖。这样都是平稳股票的波动性。使其更符合市场预期。</p>
+<h2 id="破产清算"><a href="#破产清算" class="headerlink" title="破产清算"></a>破产清算</h2><blockquote>
+<p>破产（英语：Bankruptcy），是一种宣告债务人无力偿付债务及其后的一系列还款予债权人过程的法律程序。</p>
+</blockquote>
+<p>不同国家的破产法律有很大的差异，一般来说常见的破产方式有两种：</p>
+<ul>
+<li>破产清算(liquidation)</li>
+<li>重整(reorganization)、债务重组(restructuring)</li>
+</ul>
+<p>资产低于负债不代表破产，企业可能有足够的收入来支付所有到期债务。比如百事可乐分离的百胜公司早期有16亿美元的股东赤字（负的股东权益），但是因为百胜现金流转很强，对此根本没有问题。</p>
+<h3 id="破产清算-1"><a href="#破产清算-1" class="headerlink" title="破产清算"></a>破产清算</h3><blockquote>
+<p>破产主体停止一切经营活动，财产被查封拍卖用于抵偿债务。</p>
+</blockquote>
+<p>公司没有经营下去的必要，将公司资产卖掉然后进行分摊。债权人比股票所有者具有更高的优先级拿回钱。其中债权人分为几类：</p>
+<ul>
+<li>高级担保债务(Senior Secured Debt), 优先拿到钱。同时，如果公司不能偿还清，债权人可以得到公司的担保品。</li>
+<li>高级无担保债务(Senior Unsecured): 偿还完更优先的债权人后，再偿还此部分债权人。</li>
+<li>后偿债务(subordinated): 无担保的最低级债务。</li>
+</ul>
+<h3 id="债务重组"><a href="#债务重组" class="headerlink" title="债务重组"></a>债务重组</h3><blockquote>
+<p>破产者在债权人或破产管理人的监督下可继续经营，并在规定期限内向法院和债权人提出重整计划。重整计划中破产者可以请求减免某些无力履行的债务或合同，或者改变偿还方式，并给出继续经营和偿还债务的计划。如果债权人投票通过重整计划则破产者有可能重新恢复经营，否则可能会进入清算程序。在许多情况下，允许仍有盈利潜力的企业继续经营可能会获得比单纯拍卖其资产更多的收益，从而使破产者和债权人都获得比破产清算更好的结果。有时，这也被称作破产保护。</p>
+</blockquote>
+<p>公司还有经营的必要性(具备盈利能力)，重组是调整公司的资产状况。<br>例如，公司还在盈利，但是因为某些原因（本季度销售不佳等等），无法偿还清债权人的利息，但是这个时候公司破产清算是很不划算的。最好的方法，是保持正常运营，因为没有足够的现金偿还债权人的债务，不能偿还即意味着借了新的贷款，被称为债务人持有资产贷款(debtor-in-possession loan)；这个借款是最高级别的借款，在普通债务之上，也可被称为债务人持有资产融资(DIP financing)；通过这个债务(本质上变成了破产法庭接管资产，引入一些投资，使用DIP融资，使得公司拥有资金继续运营，付员工薪水等等)，公司的资产得到了增加（资产=负债+权益），并且一旦破产清算，DIP拥有最高优先偿还权。</p>
+<h3 id="破产重组示例"><a href="#破产重组示例" class="headerlink" title="破产重组示例"></a>破产重组示例</h3><p>假设有一家公司，资产为100万：</p>
+<ul>
+<li>负债60万<ul>
+<li>高级担保债务20万</li>
+<li>高级无担保30万</li>
+<li>后偿债务10万</li>
+</ul>
+</li>
+<li>权益为40万，发行股票10万股，则每股价格为4块。</li>
+</ul>
+<p>现在，由于公司的经营情况不良，需要提出破产计划。高级担保债务人会雇佣一家银行或经纪公司对公司进行估价，高级无担保债务人、后偿债务人、股东等等都会有不同的破产计划和对公司的股价。比如股东们肯定想高评估，这样自己才能分到钱。<br>假设最后通过这样一份评估计划：该公司目前只值50万（参考当前市场价），且其现在的偿还能力为20万（此时若破产清算，高级无担保债务都拿不到钱）。<br>那么公司就会重组，新公司资产50万：</p>
+<ul>
+<li>负债20万，债务人为原来公司的高级担保债务人；</li>
+<li>权益30万，这30万为原来公司的高级无担保债务人，即由债务变为权益股票了（这样的重组比破产清算要强）。<br>而剩下的后偿债务、还有之前10万股股票的股东，都没有新公司的资产了。「破产重组深如海，从此股东是路人」<br>对于将变为股票的高级无担保债务人，他们在评估旧公司时，会尽量评估低公司的价值。比如实际价值100万的公司，若被评估为50万并进行了上面的重组，高级无担保债务人拥有了“30万”的股票（实际资产减去公司20万债务，实际权益为80万）。<br>不同位置的人会对公司进行不同的评估，这样也使得公司估价不会偏离太多。</li>
+</ul>
+<h1 id="资金收益率-投资收益率-return-on-capital"><a href="#资金收益率-投资收益率-return-on-capital" class="headerlink" title="资金收益率/投资收益率(return on capital)"></a>资金收益率/投资收益率(return on capital)</h1><blockquote>
+<p>资金收益率又称资金利润率，是指企业净利润（即税后利润）与所有者权益(即资本总额，=实收资本+股本金+资本公积+盈余公积+利润分配(贷方余额))的比率。</p>
+</blockquote>
+<p>资本收益率越高，说明企业自有投资的经济效益越好，投资者的风险越少，值得投资和继续投资。因此，它是投资者和潜在投资者进行投资决策的重要依据。但是实际投资时，除了投资回报率，还要综合考虑很多因素，比如是贷款投资，就要考虑贷款利息率等。<br>资金收益率，你每年的通过投资得到的现金除以投资总金额。<br>例如投资一家餐厅100万元，而这家餐厅每年为我盈利10万元，则这次投资的资本收益率为10%；</p>
+<h2 id="资本成本（Cost-of-Capital）"><a href="#资本成本（Cost-of-Capital）" class="headerlink" title="资本成本（Cost of Capital）"></a>资本成本（Cost of Capital）</h2><p>投资一家餐厅100万元，若全额贷款100万进行投资，且银行贷款利率为15%，则此时我们这项投资的资本成本为15%。<code>资本收益10% &lt; 资本成本15%</code>，这种投资是没有意义的。<br>现实的投资往往牵扯的因素更多：</p>
+<ul>
+<li>餐厅，资本收益率10%，银行贷款利率15%</li>
+<li>养老院，资本收益率5%，银行贷款利率3%（由于国家政策支持）</li>
+</ul>
+<p>只看资本收益率，应该投餐厅，但是再考虑资本成本，则只有养老院一个选择。实际中的影响因素更多。</p>
+<h1 id="信用违约互换"><a href="#信用违约互换" class="headerlink" title="信用违约互换"></a>信用违约互换</h1><blockquote>
+<p>信用违约交换（英语：credit default swap，缩写CDS）也称信用违约掉期、信贷违约掉期、贷款违约保险；是信贷与保险的衍生工具之一，合约由两个法人交易，一个称为买方（信贷违约时受保护的一方），另一个称为卖方（保障买方于信贷违约时损失）。主要为约定期内信用违约提供一个高比率的保险业务，若担保方没有足够的保证金，会来相当大的投机行为。若保证金充足，其意义在于为买方提供被违约时的本金保障。<br>掉期交易（Swap）是一种金融衍生品（也称为金融衍生工具），指交易双方约定在未来某一期限相互交换各自持有的资产或现金流的交易形式。较为常见的是外汇掉期交易和利率掉期交易，多被用作避险和投机的目的。</p>
+</blockquote>
+<p>A向B申请贷款，B为了利息而放贷给A，放贷出去的钱总有风险(如果A破产，无法偿还利息和本金)，那么这时候C出场，由C对B的这个风险予以保险承诺，条件是B每年向C支付一定的保险费用（要低于A的贷款利息）。但万一A破产的情况发生，那么由C补偿B所遭受的的损失。<br>信贷违约掉期是一种新的金融衍生产品，类似保险合同。债权人通过这种合同将债务风险出售，合同价格就是保费。如果买入信贷违约掉期合同被投资者定价太低，当次贷违约率上升时，这种“保费”就会上涨，随之增值。</p>
+<h1 id="按揭证券"><a href="#按揭证券" class="headerlink" title="按揭证券"></a>按揭证券</h1><h2 id="抵押"><a href="#抵押" class="headerlink" title="抵押"></a>抵押</h2><p>一般，借款可以分为“有抵押借贷”和“无抵押借贷”两种，而抵押就是属前者。</p>
+<blockquote>
+<p>抵押（mortgage），亦称按揭（注意：部分地区或国家之“按揭”制度与“抵押”意义并非全然相同），是指提供私人资产（不论是否为不动产）作为债务担保的动作，多发生于购买房地产时银行借出的抵押贷款或在典当商折现非不动产的物品。抵押常在银行或地产界中使用。</p>
+</blockquote>
+<h2 id="按揭证券-Mortgage-Backed-Securities-MBS"><a href="#按揭证券-Mortgage-Backed-Securities-MBS" class="headerlink" title="按揭证券(Mortgage-Backed Securities, MBS)"></a>按揭证券(Mortgage-Backed Securities, MBS)</h2><p>人们贷款买房，一些公司拥有很多这样的贷款，将这些发行给市面上的投资者，即按揭证券（投资者-&gt;按揭证劵-&gt;房贷中介公司-&gt;房贷-&gt;贷款者）。这是一种资产抵押债券形式，钱从贷款买房者流向中介公司，然后偿还给投资者。而中介公司有一定的风险，因为贷款买房者可能会违约。而房子就是房贷抵押。<br>但是一部分投资者可能觉得这种按揭证券风险太大，因此中介公司请一些评级机构来调查底层贷款者的情况，并进行分级。即评级机构将按揭证券公司所发行的证券进行了评级，一些是BB，一些是AA级等；</p>
+<blockquote>
+<p>债务抵押债券(the collateralized debt obligation, CDO): 将证券分类为优先级证券、中间级证券、权益级证券。优先偿还优先级证券持有者，然后是中间级证券持有者，最后是权益级证券持有者。CDO是抵押贷款的衍生证券，优先级证券会被评级机构给予较高的级别，风险较低，同样利率也低；权益级证券的风险较高，但是利率也高。</p>
+</blockquote>
+<p>向银行贷款的人太多，银行就会将这些贷款转到投行公司，投行公司将这些抵押贷款以按揭证券的形式发放出去。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;天下熙熙，皆为利来；天下壤壤，皆为利往。&lt;br&gt;夫千乘之王，万家之侯，百室之君，尚犹患贫，而况匹夫编户之民乎！&lt;br&gt;《史记 货殖列传》&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Open Classes" scheme="http://seanxp.com/categories/Open-Classes/"/>
+    
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
+    
+      <category term="Finance" scheme="http://seanxp.com/tags/Finance/"/>
+    
+      <category term="Abstract" scheme="http://seanxp.com/tags/Abstract/"/>
+    
+      <category term="Khan" scheme="http://seanxp.com/tags/Khan/"/>
+    
+      <category term="Course" scheme="http://seanxp.com/tags/Course/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Mac神器hammerspoon</title>
+    <link href="http://seanxp.com/2016/mac-hammerspoon/"/>
+    <id>http://seanxp.com/2016/mac-hammerspoon/</id>
+    <published>2016-05-08T23:41:58.000Z</published>
+    <updated>2017-02-03T08:08:46.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><div align="center"><br><img src="https://raw.githubusercontent.com/Hammerspoon/hammerspoon.github.io/master/images/hammerspoon.png" width="100" height="100" alt="Hammerspoon"><br>一键切换常用应用，一键调整桌面布局，Love Mac，Love Hammerspoon。<br></div><br><a id="more"></a></p>
+<h1 id="What-is-Hammerspoon"><a href="#What-is-Hammerspoon" class="headerlink" title="What is Hammerspoon?"></a>What is Hammerspoon?</h1><p>This is a tool for powerful automation of OS X. At its core, Hammerspoon is just a bridge between the operating system and a Lua scripting engine.<br>What gives Hammerspoon its power is a set of extensions that expose specific pieces of system functionality, to the user.<br>Hammerspoon可以自定义Mac OS X的快捷键（例如<code>Command</code>+<code>Shift</code>+<code>h</code>）以实现多类操作，我个人主要将其用于窗口管理（比moom for mac更加高效）与应用启动（比alfred for mac更加高效）。</p>
+<ul>
+<li>Hammerspoon:  <a href="http://www.hammerspoon.org/" target="_blank" rel="external">http://www.hammerspoon.org/</a></li>
+<li>Github:       <a href="https://github.com/Hammerspoon/hammerspoon" target="_blank" rel="external">https://github.com/Hammerspoon/hammerspoon</a></li>
+<li><a href="http://www.hammerspoon.org/docs/index.html" target="_blank" rel="external">Hammerspoon API Documentation</a></li>
+</ul>
+<h1 id="Download"><a href="#Download" class="headerlink" title="Download"></a>Download</h1><ol>
+<li>Download the <a href="https://github.com/Hammerspoon/hammerspoon/releases/" target="_blank" rel="external">latest release</a>, Drag <code>Hammerspoon.app</code> from your <code>Downloads</code> folder to <code>Applications</code>;</li>
+<li><p>use <a href="http://brew.sh/" target="_blank" rel="external">Homebrew</a> tool(recommend)</p>
+<pre><code>$ brew cask install hammerspoon
+</code></pre></li>
+</ol>
+<h1 id="Getting-Started-Guide"><a href="#Getting-Started-Guide" class="headerlink" title="Getting Started Guide"></a>Getting Started Guide</h1><p>参考：<a href="http://www.hammerspoon.org/go/" target="_blank" rel="external">Getting Started Guide</a><br><code>~/.hammerspoon</code>为hammerspoon的配置目录，配置文件<code>init.lua</code>基于Lua脚本语言编写。</p>
+<pre><code>$ mkdir -p ~/.hammerspoon
+$ cd ~/.hammerspoon
+$ touch init.lua
+</code></pre><p>之后的配置就是往<code>init.lua</code>中添加配置，修改完配置后hammerspoon.app需要重新加载(<code>Menu -&gt; hammerspoon.app -&gt; Reload Config</code>)；</p>
+<h2 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h2><p>参考：<a href="http://www.hammerspoon.org/go/#helloworld" target="_blank" rel="external">http://www.hammerspoon.org/go/#helloworld</a></p>
+<pre><code>$ vim init.lua
+# 添加:
+
+hs.hotkey.bind({&apos;cmd&apos;, &apos;shift&apos;}, &apos;h&apos;, function()
+    hs.alert(&apos;Hello World&apos;)
+end)
+</code></pre><p>保存配置文件，<code>Reload Config</code>，配置文件成效！<br>按<code>Command</code>+<code>Shift</code>+<code>h</code>，屏幕上就会出现一行文本<code>Hello World</code>，几秒后自动消失。</p>
+<blockquote>
+<p>Hammerspoon 是一个插件化的程序，像 hs.hotkey 和 hs.alert 这些都是 Hammerspoon 所集成的插件。</p>
+</blockquote>
+<h2 id="Fancier-Hello-World"><a href="#Fancier-Hello-World" class="headerlink" title="Fancier Hello World"></a>Fancier Hello World</h2><p>参考：<a href="http://www.hammerspoon.org/go/#fancyhelloworld" target="_blank" rel="external">http://www.hammerspoon.org/go/#fancyhelloworld</a></p>
+<pre><code>hs.hotkey.bind({&quot;cmd&quot;, &quot;alt&quot;, &quot;ctrl&quot;}, &quot;W&quot;, function()
+    hs.notify.new({title=&quot;Hammerspoon&quot;, informativeText=&quot;Hello World&quot;}):send()
+end)
+</code></pre><p>使用Mac OS X系统自带的提示(notifications)，右上角弹窗显示<code>Hello World</code>；</p>
+<h1 id="配置示例"><a href="#配置示例" class="headerlink" title="配置示例"></a>配置示例</h1><h2 id="模块化设计"><a href="#模块化设计" class="headerlink" title="模块化设计"></a>模块化设计</h2><p>所以配置都放在<code>init.lua</code>里未免太过繁琐，修改起来也比较麻烦，因此在配置前设计一套模块化的脚本配置文件是很有必要的。<br>具体做法：不同配置写在不同文件里（例如有关启动应用的配置写在<code>launch.lua</code>中），在主配置文件<code>init.lua</code>中包含模块配置文件（可以类比C语言的include）。<br>配置文件的目录框架：</p>
+<pre><code>├── init.lua
+└── modules
+    ├── auto_reload.lua
+    ├── hotkey.lua
+    ├── launch.lua
+    ├── screens.lua
+    ├── system.lua
+    └── windows.lua
+</code></pre><p><code>init.lua</code>:</p>
+<pre><code>require &quot;modules/hotkey&quot;
+require &quot;modules/screens&quot;
+require &quot;modules/windows&quot;
+require &quot;modules/launch&quot;
+require &quot;modules/system&quot;
+require &quot;modules/auto_reload&quot;
+</code></pre><h2 id="快捷键设定"><a href="#快捷键设定" class="headerlink" title="快捷键设定"></a>快捷键设定</h2><p><code>~/.hammerspoon/modules/hotkey.lua</code>:</p>
+<pre><code>hyper = {&apos;ctrl&apos;, &apos;cmd&apos;}
+hyperShift = {&apos;ctrl&apos;, &apos;cmd&apos;, &apos;shift&apos;}
+</code></pre><p>配置快捷键前缀，其他配置文件会用到该变量<code>hyper</code>与<code>hyperShift</code>。这样配置的好处是，想要更换快捷键，只需要修改这一处即可。</p>
+<h2 id="快速启动Applications"><a href="#快速启动Applications" class="headerlink" title="快速启动Applications"></a>快速启动Applications</h2><p><code>~/.hammerspoon/modules/launch.lua</code>:</p>
+<pre><code>local hotkey = require &apos;hs.hotkey&apos;
+local window = require &apos;hs.window&apos;
+local application = require &apos;hs.application&apos;
+
+local key2App = {
+    a = &apos;AppCleaner&apos;,
+    e = &apos;Evernote&apos;,
+    f = &apos;Finder&apos;,
+    g = &apos;Mail&apos;,
+    j = &apos;Google Chrome&apos;,
+    k = &apos;Preview&apos;,
+    m = &apos;MacDown&apos;,
+    p = &apos;1Password&apos;,
+    r = &apos;Reeder&apos;,
+    s = &apos;System Preferences&apos;,
+    z = &apos;Dictionary&apos;
+}
+
+for key, app in pairs(key2App) do
+    hotkey.bind(hyper, key, function()
+        --application.launchOrFocus(app)
+        toggle_application(app)
+    end)
+end
+
+-- reload
+hotkey.bind(hyper, &apos;escape&apos;, function() hs.reload() end )
+
+-- Toggle an application between being the frontmost app, and being hidden
+function toggle_application(_app)
+    -- finds a running applications
+    local app = application.find(_app)
+
+    if not app then
+        -- application not running, launch app
+        application.launchOrFocus(_app)
+        return
+    end
+
+    -- application running, toggle hide/unhide
+    local mainwin = app:mainWindow()
+    if mainwin then
+        if true == app:isFrontmost() then
+            mainwin:application():hide()
+        else
+            mainwin:application():activate(true)
+            mainwin:application():unhide()
+            mainwin:focus()
+        end
+    else
+        -- no windows, maybe hide
+        if true == app:hide() then
+            -- focus app
+            application.launchOrFocus(_app)
+        else
+            -- nothing to do
+        end
+    end
+end
+</code></pre><p><code>key2App</code>指定快捷键后缀与应用的对应关系，通过<code>hotkey.bind</code>函数实现快捷键绑定，例如按<code>hyper</code>+<code>e</code>就是启动<code>Evernote</code>，按<code>hyper</code>+<code>p</code>就是启动<code>1Password</code>。<br><code>toggle_application</code>函数是启动应用的具体实现，首先<code>application.find()</code>查找正在运行的app中是否有相同名称的app，没有找到则调用<code>application.launchOrFocus()</code>直接启动，找到则检查应用是否显示在最前(<code>app:isFrontmost()</code>)，在<code>focus</code>与<code>hide</code>之间切换。这样，按<code>hyper</code>+<code>e</code>就是启动<code>Evernote</code>，再次按<code>hyper</code>+<code>e</code>就是隐藏<code>Evernote</code>。</p>
+<h2 id="窗口管理"><a href="#窗口管理" class="headerlink" title="窗口管理"></a>窗口管理</h2><p><code>~/.hammerspoon/modules/windows.lua</code>:</p>
+<pre><code>require &quot;hs.application&quot;
+local hotkey = require &apos;hs.hotkey&apos;
+local window = require &apos;hs.window&apos;
+local layout = require &apos;hs.layout&apos;
+local alert = require &apos;hs.alert&apos;
+local hints = require &apos;hs.hints&apos;
+local grid = require &apos;hs.grid&apos;
+local geometry = require &apos;hs.geometry&apos;
+
+---- hyper [ for left one half window
+hotkey.bind(hyper, &apos;[&apos;, function() window.focusedWindow():moveToUnit(layout.left50) end)
+
+-- hyper ] for right one half window
+hotkey.bind(hyper, &apos;]&apos;, function() window.focusedWindow():moveToUnit(layout.right50) end)
+
+-- Hyper / to show window hints
+hotkey.bind(hyper, &apos;/&apos;, function()
+    hints.windowHints()
+end)
+
+-- Hotkeys to interact with the window grid
+hotkey.bind(hyper, &apos;,&apos;, grid.show)
+hotkey.bind(hyper, &apos;Left&apos;, grid.pushWindowLeft)
+hotkey.bind(hyper, &apos;Right&apos;, grid.pushWindowRight)
+hotkey.bind(hyper, &apos;Up&apos;, grid.pushWindowUp)
+hotkey.bind(hyper, &apos;Down&apos;, grid.pushWindowDown)
+</code></pre><p>hammerspoon提供的窗口管理API十分丰富，一行配置，就可以实现<code>hyper</code>+<code>[</code>使得窗口左半屏。<br><code>window.focusedWindow():moveToUnit(layout.right50)</code>，使得当前focused的窗口移动到左半屏(<code>latest.right50</code>)，右半屏则为(<code>latest.right50</code>)；</p>
+<p>三七分屏(<code>layout.left30</code>, <code>layout.right70</code>):</p>
+<pre><code>-- Hotkeys to resize windows absolutely
+--hotkey.bind(hyper, &apos;[&apos;, function() window.focusedWindow():moveToUnit(layout.left30) end)
+--hotkey.bind(hyper, &apos;]&apos;, function() window.focusedWindow():moveToUnit(layout.right70) end)
+</code></pre><p>按<code>hyper</code>+<code>/</code>显示窗口提示<code>hints.windowHints()</code>;<br>按<code>hyper</code>+<code>,</code>显示窗口珊格<code>grid.show</code>，可以将屏幕布局划分为九宫格，用户可以自定义当前窗口所占的空间大小。<br><code>grid.pushWindowLeft</code>,<code>grid.pushWindowRight</code>实现窗口的移动，例如左半屏的窗口，通过<code>hyper</code>+<code>left</code>实现移动到右半屏，等价于<code>hyper</code>+<code>]</code>的效果。</p>
+<h1 id="配置文件参考-SeanXP"><a href="#配置文件参考-SeanXP" class="headerlink" title="配置文件参考 - SeanXP"></a>配置文件参考 - SeanXP</h1><p><a href="https://github.com/SeanXP/dotfiles/tree/master/hammerspoon" target="_blank" rel="external">SeanXP-Hammerspoon</a></p>
+<h2 id="快捷键配置"><a href="#快捷键配置" class="headerlink" title="快捷键配置"></a>快捷键配置</h2><p><code>hyper</code> = <code>ctrl</code> + <code>cmd</code><br><code>hyperShift</code> = <code>ctrl</code> + <code>cmd</code> + <code>Shift</code></p>
+<h2 id="Focus-Application-modules-launch-lua"><a href="#Focus-Application-modules-launch-lua" class="headerlink" title="Focus Application - modules/launch.lua"></a>Focus Application - modules/launch.lua</h2><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hyper</code>+<code>a</code></td>
+<td>Toggle AppCleaner</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>b</code></td>
+<td>Toggle Notes</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>c</code></td>
+<td>Toggle Calendar</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>d</code></td>
+<td>(System hotkey) Define word</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>e</code></td>
+<td>Toggle Evernote</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>f</code></td>
+<td>Toggle Finder</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>g</code></td>
+<td>Toggle Mail</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>h</code></td>
+<td>Toggle Dash</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>j</code></td>
+<td>Toggle Google Chrome</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>k</code></td>
+<td>Toggle Preview</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>m</code></td>
+<td>Toggle MacDown</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>n</code></td>
+<td>Toggle NeteaseMusic</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>o</code></td>
+<td>Toggle OmniToggle</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>p</code></td>
+<td>Toggle 1Password</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>r</code></td>
+<td>Toggle Reeder</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>s</code></td>
+<td>Toggle System Preferences</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>t</code></td>
+<td>Toggle Tweetbot</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>u</code></td>
+<td>Toggle Ulysses</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>w</code></td>
+<td>Toggle WeChat</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>z</code></td>
+<td>Toggle Dictionary</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>;</code></td>
+<td>Toggle iTerm</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>ESC</code></td>
+<td>Reload Hammerspoon Config</td>
+</tr>
+</tbody>
+</table>
+<h2 id="auto-reload-modules-auto-reload-lua"><a href="#auto-reload-modules-auto-reload-lua" class="headerlink" title="auto reload - modules/auto_reload.lua"></a>auto reload - modules/auto_reload.lua</h2><p>automatically reload the configuration whenever the file changes.</p>
+<h2 id="Window-Layouts-modules-windows-lua"><a href="#Window-Layouts-modules-windows-lua" class="headerlink" title="Window Layouts - modules/windows.lua"></a>Window Layouts - modules/windows.lua</h2><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hyper</code>+<code>[</code></td>
+<td>Set the current app to left layout</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>tab</code></td>
+<td>Toggle the current app to fullscreen layout or normal layout</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>]</code></td>
+<td>Set the current app to right layout</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>,</code></td>
+<td>Show the window grid</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>Left</code></td>
+<td>Push the current app to the left screen</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>Right</code></td>
+<td>Push the current app to the right screen</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>Up</code></td>
+<td>Push the current app to the up screen</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>Down</code></td>
+<td>Push the current app to the down screen</td>
+</tr>
+<tr>
+<td><code>hyper</code>+<code>/</code></td>
+<td>Show Window Hints</td>
+</tr>
+</tbody>
+</table>
+<h2 id="Move-between-displays-modules-screens-lua"><a href="#Move-between-displays-modules-screens-lua" class="headerlink" title="Move between displays - modules/screens.lua"></a>Move between displays - modules/screens.lua</h2><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hyper</code>+ <code>.</code></td>
+<td>Move to next display</td>
+</tr>
+<tr>
+<td><code>hyperShift</code>+ <code>.</code></td>
+<td>Move to previous display</td>
+</tr>
+</tbody>
+</table>
+<h2 id="System-hotkey-modules-system-lua"><a href="#System-hotkey-modules-system-lua" class="headerlink" title="System hotkey - modules/system.lua"></a>System hotkey - modules/system.lua</h2><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hyper</code>+ <strong>`</strong></td>
+<td>lock screen</td>
+</tr>
+</tbody>
+</table>
+<h1 id="其他教程参考"><a href="#其他教程参考" class="headerlink" title="其他教程参考"></a>其他教程参考</h1><ul>
+<li><a href="http://www.hammerspoon.org/go/" target="_blank" rel="external">Getting Started Guide</a></li>
+<li><a href="https://github.com/Hammerspoon/hammerspoon/wiki/Sample-Configurations" target="_blank" rel="external">https://github.com/Hammerspoon/hammerspoon/wiki/Sample-Configurations</a></li>
+<li><a href="https://github.com/cmsj/hammerspoon-config" target="_blank" rel="external">https://github.com/cmsj/hammerspoon-config</a></li>
+<li><a href="http://bezhermoso.github.io/2016/01/20/making-perfect-ramen-lua-os-x-automation-with-hammerspoon/" target="_blank" rel="external">http://bezhermoso.github.io/2016/01/20/making-perfect-ramen-lua-os-x-automation-with-hammerspoon/</a></li>
+<li><a href="https://songchenwen.com/tech/2015/04/02/hammerspoon-mac-window-manager/" target="_blank" rel="external">Hammerspoon, OS X 上的全能窗口管理器</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;div align=center&gt;&lt;br&gt;&lt;img src=&quot;https://raw.githubusercontent.com/Hammerspoon/hammerspoon.github.io/master/images/hammerspoon.png&quot; width=&quot;100&quot; height=&quot;100&quot; alt=&#39;Hammerspoon&#39;/&gt;&lt;br&gt;一键切换常用应用，一键调整桌面布局，Love Mac，Love Hammerspoon。&lt;br&gt;&lt;/div&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Mac" scheme="http://seanxp.com/categories/Mac/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>samba服务器配置</title>
+    <link href="http://seanxp.com/2016/samba/"/>
+    <id>http://seanxp.com/2016/samba/</id>
+    <published>2016-05-08T06:18:21.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>Samba最大的功能就是可以用于Linux与windows系统直接的文件共享和打印共享，Samba既可以用于windows与Linux之间的文件共享，也可以用于Linux与Linux之间的资源共享，由于NFS(网络文件系统）可以很好的完成Linux与Linux之间的数据共享，因而 Samba较多的用在了Linux与windows之间的数据共享上面。<br><a id="more"></a></p>
+<h1 id="Samba简介"><a href="#Samba简介" class="headerlink" title="Samba简介"></a>Samba简介</h1><p>Samba是一个能让Linux系统应用Microsoft网络通讯协议的软件，而SMB是<code>Server Message Block</code>的缩写，即为服务器消息块 ，SMB主要是作为Microsoft的网络通讯协议，后来Samba将SMB通信协议应用到了Linux系统上，就形成了现在的Samba软件。后来微软又把 SMB 改名为 <code>CIFS（Common Internet File System）</code>，即公共 Internet 文件系统，并且加入了许多新的功能，这样一来，使得Samba具有了更强大的功能。</p>
+<p><font color="red">Samba最大的功能就是可以用于Linux与windows系统直接的文件共享和打印共享</font>，Samba既可以用于windows与Linux之间的文件共享，也可以用于Linux与Linux之间的资源共享，由于NFS(网络文件系统）可以很好的完成Linux与Linux之间的数据共享，因而 Samba较多的用在了Linux与windows之间的数据共享上面。<br>Samba 是 SMB/CIFS 网络协议的重新实现, 它作为 NFS 的补充使得在 Linux 和 Windows 系统中进行文件共享、打印机共享更容易实现。</p>
+<p>参考：</p>
+<ul>
+<li><a href="http://wiki.ubuntu.org.cn/Samba" target="_blank" rel="external">http://wiki.ubuntu.org.cn/Samba</a></li>
+<li><a href="https://wiki.archlinux.org/index.php/Samba" target="_blank" rel="external">https://wiki.archlinux.org/index.php/Samba</a></li>
+<li><a href="http://www.cnblogs.com/mchina/archive/2012/12/18/2816717.html" target="_blank" rel="external">http://www.cnblogs.com/mchina/archive/2012/12/18/2816717.html</a></li>
+</ul>
+<h2 id="1-安装Samba服务器"><a href="#1-安装Samba服务器" class="headerlink" title="1. 安装Samba服务器"></a>1. 安装Samba服务器</h2><p>Ubuntu:</p>
+<pre><code>$ sudo apt-get install samba
+</code></pre><p>Arch Linux:</p>
+<pre><code>$ sudo pacman -S samba
+</code></pre><h2 id="2-创建共享目录"><a href="#2-创建共享目录" class="headerlink" title="2. 创建共享目录"></a>2. 创建共享目录</h2><p>假设共享目录为: <code>/home/Share</code>, 设置该文件夹的权限777使其让所有用户可读可写可运行。</p>
+<pre><code>$ sudo mkdir -p /home/Share
+$ sudo chmod 777 /home/Share
+</code></pre><h2 id="3-修改配置文件"><a href="#3-修改配置文件" class="headerlink" title="3. 修改配置文件"></a>3. 修改配置文件</h2><p>备份（编辑系统文件前养成备份的好习惯，避免编辑错误后系统工作不正常）并编辑<code>/etc/samba/smb.conf</code>允许网络用户访问：</p>
+<pre><code>$ sudo cp /etc/samba/smb.conf /etc/samba/smb.conf_backup
+$ sudo vim /etc/samba/smb.conf
+</code></pre><h3 id="公共共享文件夹-支持游客登录）"><a href="#公共共享文件夹-支持游客登录）" class="headerlink" title="公共共享文件夹 (支持游客登录）"></a>公共共享文件夹 (支持游客登录）</h3><p><code>/etc/samba/smb.conf</code>文件末尾添加:</p>
+<pre><code>[Public-Share]
+    comment = shared folder for public
+    path = /home/Share
+    # 是否游客访问
+    # guest ok = yes # 等价 &apos;public = yes&apos;
+    public = yes
+    # 是否可写
+    writable = yes
+    # 是否可浏览
+    browseable = yes
+    # 是否可用
+    available = yes
+</code></pre><h3 id="用户共享文件夹-samba帐号登录）"><a href="#用户共享文件夹-samba帐号登录）" class="headerlink" title="用户共享文件夹 (samba帐号登录）"></a>用户共享文件夹 (samba帐号登录）</h3><p><code>/etc/samba/smb.conf</code>文件末尾添加:</p>
+<pre><code>[Private-Share]
+    comment = Shared Folder with username and password
+    path = /home/Share
+    # 指定能够使用该共享资源的用户和组
+    valid users = user1
+    # 是否可写
+    writable = yes
+    # 是否可浏览
+    browseable = yes
+    # 是否可用
+    available = yes
+</code></pre><h2 id="4-创建samba用户-公共共享文件夹则无需创建帐号"><a href="#4-创建samba用户-公共共享文件夹则无需创建帐号" class="headerlink" title="4. 创建samba用户(公共共享文件夹则无需创建帐号)"></a>4. 创建samba用户(公共共享文件夹则无需创建帐号)</h2><p>注意：创建samba用户之前，必须先确保有一个同名的Linux用户，否则samba用户会创建失败。</p>
+<pre><code>$ sudo useradd user1
+</code></pre><p>上面只是增加了user1这个用户，却没有给用户赋予本机登录密码。所以这个用户将只能从远程访问，不能从本机登录(当然，root可以修改user1用户的密码，这样user1就可以登录本机了)。<br>而且samba的登录密码可以和本机登录密码不一样。smb用户密码与unix帐号密码可以一样或不同，它们之间不存在连接关系。<br>现在要新增网络使用者的帐号，设置user1用户的samba密码，这个密码不是开机登录，而是用于samba登录：</p>
+<pre><code>$ sudo smbpasswd -a user1
+</code></pre><p>删除samba密码:</p>
+<pre><code>$ sudo smbpasswd -x user1
+</code></pre><p>同样，也可以使用pdbedit设置samba密码;</p>
+<pre><code>$ sudo pdbedit -a -u user1
+</code></pre><p>查看:</p>
+<pre><code>$ sudo pdbedit -L
+</code></pre><p>删除:</p>
+<pre><code>$ sudo pdbedit -x user1
+</code></pre><h2 id="5-重启samba服务"><a href="#5-重启samba服务" class="headerlink" title="5. 重启samba服务"></a>5. 重启samba服务</h2><pre><code>$ sudo service smbd restart
+$ sudo /etc/init.d/samba restart
+</code></pre><h2 id="6-客户端访问"><a href="#6-客户端访问" class="headerlink" title="6. 客户端访问"></a>6. 客户端访问</h2><h3 id="Linux-smbclient"><a href="#Linux-smbclient" class="headerlink" title="Linux - smbclient"></a>Linux - smbclient</h3><pre><code>$ sudo apt-get install smbclient
+</code></pre><p>匿名(-N) 查看(-L):</p>
+<pre><code>$ smbclient -L 10.42.1.100 -N
+</code></pre><p>实名(-U) 查看(-L):</p>
+<pre><code>$ smbclient -L 10.42.1.100 -U user%password
+$ smbclient -L 10.42.1.100 -U user1 (推荐，避免保存明文密码）
+</code></pre><p>这里的password是smbpasswd, 与linux登录密码不等价。<br>进入smbclient命令行进行交互:</p>
+<pre><code>$ smbclient //10.42.1.100/Share -N
+$ smbclient //10.42.1.100/Share -U user1
+</code></pre><h3 id="Linux-mount-cifs挂载"><a href="#Linux-mount-cifs挂载" class="headerlink" title="Linux - mount.cifs挂载"></a>Linux - mount.cifs挂载</h3><ol>
+<li><p>安装cifs-utils组件</p>
+<pre><code>$ sudo apt-get install cifs-utils
+</code></pre></li>
+<li><p>挂载samba目录</p>
+<pre><code>$ sudo mount -t cifs //10.42.1.100/Share /mnt -o guest
+$ sudo mount -t cifs //10.42.1.100/Share /mnt -o username=user1,password=xxxxxx
+$ sudo mount -t cifs //10.42.1.100/Share /mnt -o username=user1
+$ sudo mount.cifs //10.42.1.100/Share /mnt -o username=user1
+</code></pre></li>
+</ol>
+<h2 id="配置文件详细配置"><a href="#配置文件详细配置" class="headerlink" title="配置文件详细配置"></a>配置文件详细配置</h2><pre><code>### [global]
+# 定义工作组, 建议修改为”WORKGROUP”（windows默认的工作组名字）
+workgroup = WORKGROUP
+# samba server名称
+server string = %h server (Samba, Ubuntu)
+dns proxy = no
+#定义samba的日志，这里的%m是上面的netbios name
+log file = /var/log/samba/log.%m
+max log size = 1000
+panic action = /usr/share/samba/panic-action %d
+# samba的安全等级。关于安全等级有四种：
+#         share：用户不需要账户及密码即可登录samba服务器
+#        user：由提供服务的samba服务器负责检查账户及密码（默认）
+#        server：检查账户及密码的工作由另一台windows或samba服务器负责
+#        domain：指定windows域控制服务器来验证用户的账户及密码。
+security = user
+# passdb backend （用户后台），samba有三种用户后台：smbpasswd, tdbsam和ldapsam;
+#        smbpasswd：该方式是使用smb工具smbpasswd给系统用户（真实用户或者虚拟用户）设置一个Samba 密码；
+#                客户端就用此密码访问Samba资源。smbpasswd在/etc/samba中，有时需要手工创建该文件。
+#        tdbsam：使用数据库文件创建用户数据库。数据库文件叫passdb.tdb，在/etc/samba中。
+#                passdb.tdb用户数据库可使用smbpasswd -a创建Samba用户，要创建的Samba用户必须先是系统用户。
+#                也可使用pdbedit创建Samba账户。
+#        ldapsam：基于LDAP账户管理方式验证用户。首先要建立LDAP服务。
+passdb backend = tdbsam
+
+# 用来设置允许的主机，如果在前面加”;”则为注释，表示允许所有主机
+hosts allow = 127.  192.168.12.  192.168.13.
+</code></pre><h3 id="其他配置"><a href="#其他配置" class="headerlink" title="其他配置"></a>其他配置</h3><pre><code># 指明新建立的文件的属性，一般是0755
+create mask = 0755
+# 指明新建立的目录的属性，一般是0755
+directory mask = 0755
+comment = smb share test # 该共享的备注
+path = /home/share # 共享路径
+allow hosts = host(subnet) # 设置该Samba服务器允许的工作组或者域
+deny hosts = host(subnet) # 设置该Samba服务器拒绝的工作组或者域
+available = yes|no # 设置该共享目录是否可用
+browseable = yes|no # 设置该共享目录是否可显示
+writable = yes|no # 指定了这个目录缺省是否可写，也可以用readonly = no来设置可写
+public = yes|no # 指明该共享资源是否能给游客帐号访问，guest ok = yes其实和public = yes是一样的
+user = user, @group # user设置所有可能使用该共享资源的用户，也可以用@group代表group这个组的所有成员，不同的项目之间用空格或者逗号隔开
+valid users = user, @group # 指定能够使用该共享资源的用户和组
+invalid users = user, @group # 指定不能够使用该共享资源的用户和组
+read list = user, @group # 指定只能读取该共享资源的用户和组
+write list = user, @group # 指定能读取和写该共享资源的用户和组
+admin list = user, @group # 指定能管理该共享资源（包括读写和权限赋予等）的用户和组
+hide dot files = yes|no # 指明是否像UNIX那样隐藏以“.”号开头的文件
+create mode = 0755 # 指明新建立的文件的属性，一般是0755
+directory mode = 0755 # 指明新建立的目录的属性，一般是0755
+sync always = yes|no # 指明对该共享资源进行写操作后是否进行同步操作
+short preserve case = yes|no # 指明是否区分文件名大小写
+preserve case = yes|no # 指明是否保持大小写
+case sensitive = yes|no # 指明是否对大小写敏感，一般选no，不然可能引起错误
+mangle case = yes|no # 指明混合大小写
+default case = upper|lower # 指明缺省的文件名是全部大写还是小写
+force user = testuser # 强制把建立文件的属主是谁。如果我有一个目录，让guest可以写，那么guest就可以删除，如果我用force user= testuser强制建立文件的属主是testuser，同时限制create mask = 0755，这样guest就不能删除了
+wide links = yes|no # 指明是否允许共享外符号连接，比如共享资源里面有个连接指向非共享资源里面的文件或者目录，如果设置wide links = no将使该连接不可用
+max connections = 100 # 设定最大同时连接数
+delete readonly = yes|no # 指明能否删除共享资源里面已经被定义为只读的文件
+</code></pre><h3 id="防止出现中文目录乱码"><a href="#防止出现中文目录乱码" class="headerlink" title="防止出现中文目录乱码"></a>防止出现中文目录乱码</h3><pre><code>$ export LC_ALL=zh_CN.UTF-8
+</code></pre><p>在 /etc/samba/smb.conf 中的 [global] 段加上：:</p>
+<pre><code>display charset = UTF-8
+unix charset = UTF-8
+dos charset = cp936
+</code></pre><h2 id="Tip-运行-testparm-检查-samba-的配置文件是否合法。"><a href="#Tip-运行-testparm-检查-samba-的配置文件是否合法。" class="headerlink" title="Tip: 运行 testparm 检查 samba 的配置文件是否合法。"></a>Tip: 运行 testparm 检查 samba 的配置文件是否合法。</h2><pre><code>$ sudo testparm
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Samba最大的功能就是可以用于Linux与windows系统直接的文件共享和打印共享，Samba既可以用于windows与Linux之间的文件共享，也可以用于Linux与Linux之间的资源共享，由于NFS(网络文件系统）可以很好的完成Linux与Linux之间的数据共享，因而 Samba较多的用在了Linux与windows之间的数据共享上面。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+      <category term="Server" scheme="http://seanxp.com/tags/Server/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>shadowsocks</title>
+    <link href="http://seanxp.com/2016/shadowsocks/"/>
+    <id>http://seanxp.com/2016/shadowsocks/</id>
+    <published>2016-05-08T03:30:12.000Z</published>
+    <updated>2017-02-03T08:07:37.000Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote class="blockquote-center"><br>Across the Great Wall we can reach every corner in the world.<br>「越过长城，走向世界每个角落」<br>中国互联网发送的第一封电子邮件（1987年）<br></blockquote>
+
+<a id="more"></a>
+<h1 id="写给非专业人士看的-Shadowsocks-简介"><a href="#写给非专业人士看的-Shadowsocks-简介" class="headerlink" title="写给非专业人士看的 Shadowsocks 简介"></a>写给非专业人士看的 Shadowsocks 简介</h1><p>原文: <a href="http://vc2tea.com/whats-shadowsocks/" target="_blank" rel="external">http://vc2tea.com/whats-shadowsocks/</a></p>
+<h2 id="long-long-ago-…"><a href="#long-long-ago-…" class="headerlink" title="long long ago …"></a>long long ago …</h2><p><img src="/images/2016/shadowsocks-1.png" alt="shadowsocks-1"><br>在很久很久以前，我们访问各种网站都是简单而直接的，用户的请求通过互联网发送到服务提供方，服务提供方直接将信息反馈给用户。</p>
+<h2 id="when-evil-comes"><a href="#when-evil-comes" class="headerlink" title="when evil comes"></a>when evil comes</h2><p><img src="/images/2016/shadowsocks-2.png" alt="shadowsocks-2"><br>然后有一天，GFW 就出现了，他像一个收过路费的强盗一样夹在了在用户和服务之间，每当用户需要获取信息，都经过了 GFW，GFW将它不喜欢的内容统统过滤掉，于是客户当触发 GFW 的过滤规则的时候，就会收到 Connection Reset 这样的响应内容，而无法接收到正常的内容。</p>
+<blockquote>
+<p>国家公共网络监控系统，俗称中国网络防火墙（The Great Fire Wall of China，常用简称“GFW”或“墙”）。一般意义所説的GFW，主要指中国官方对境外涉及敏感内容的网站、IP地址、关键词、网址等的过滤。随着使用的拓广，中文“墙”和英文“GFW”有时也被用作动词，网友所説的“被墙”即指被防火长城所屏蔽。</p>
+</blockquote>
+<p>参考(墙外): <a href="https://theinitium.com/article/20150904-mainland-greatfirewall/" target="_blank" rel="external">道高一尺，墙高一丈：互联网封锁是如何升级的</a></p>
+<h2 id="ssh-tunnel"><a href="#ssh-tunnel" class="headerlink" title="ssh tunnel"></a>ssh tunnel</h2><p>聪明的人们想到了利用境外服务器代理的方法来绕过 GFW 的过滤，其中包含了各种HTTP代理服务、Socks服务、VPN服务…<br>其中以 ssh tunnel 的方法比较有代表性:<br><img src="/images/2016/shadowsocks-3.png" alt="shadowsocks-3"></p>
+<ul>
+<li>1) 首先用户和境外服务器基于 ssh 建立起一条加密的通道;</li>
+<li>2,3) 用户通过建立起的隧道进行代理，通过 ssh server 向真实的服务发起请求;</li>
+<li>4,5) 服务通过 ssh server，再通过创建好的隧道返回给用户;</li>
+</ul>
+<p><img src="/images/2016/shadowsocks-5.png" alt="shadowsocks-5"><br><img src="/images/2016/shadowsocks-6.png" alt="shadowsocks-6"><br>由于 ssh 本身就是基于 RSA 加密技术，所以 GFW 无法从数据传输的过程中的加密数据内容进行关键词分析，避免了被重置链接的问题，但由于创建隧道和数据传输的过程中，ssh 本身的特征是明显的，所以 GFW 一度通过分析连接的特征进行干扰，导致 ssh 存在被定向进行干扰的问题。</p>
+<h2 id="shadowsocks"><a href="#shadowsocks" class="headerlink" title="shadowsocks"></a>shadowsocks</h2><p>于是 <a href="https://github.com/shadowsocks/shadowsocks" target="_blank" rel="external">clowwindy</a>分享并开源了他的解决方案 - <a href="http://shadowsocks.org/" target="_blank" rel="external">shadowsocks</a>。<br>简单理解的话，shadowsocks 是将原来 ssh 创建的 Socks5 协议拆开成 server 端和 client 端，所以下面这个原理图基本上和利用 ssh tunnel 大致类似：<br><img src="/images/2016/shadowsocks-4.png" alt="shadowsocks-4"></p>
+<ul>
+<li>1,6) 客户端发出的请求基于 Socks5 协议跟 ss-local 端进行通讯，由于这个 ss-local 一般是本机或路由器或局域网的其他机器，不经过 GFW，所以解决了上面被 GFW 通过特征分析进行干扰的问题;</li>
+<li>2,5) ss-local 和 ss-server 两端通过多种可选的加密方法进行通讯，经过 GFW 的时候是常规的TCP包，没有明显的特征码而且 GFW 也无法对通讯数据进行解密;</li>
+<li>3,4) ss-server 将收到的加密数据进行解密，还原原来的请求，再发送到用户需要访问的服务，获取响应原路返回;</li>
+</ul>
+<h1 id="Shadowsocks-使用"><a href="#Shadowsocks-使用" class="headerlink" title="Shadowsocks 使用"></a>Shadowsocks 使用</h1><p>Shadowsocks分为服务器与客户端两部分程序, 其正常使用需要服务端(其实所有的翻墙方式都需要服务端)，搭建服务端需要你拥有一个属于自己的VPS(或者直接购买其他人提供的Shadowsocks服务器帐号)。服务器端程序一般运行在国外的主机即可。</p>
+<h2 id="搭建Shadowsocks服务器"><a href="#搭建Shadowsocks服务器" class="headerlink" title="搭建Shadowsocks服务器"></a>搭建Shadowsocks服务器</h2><p>参考：<a href="http://shadowsocks.blogspot.com/2015/01/shadowsocks.html" target="_blank" rel="external">史上最详尽Shadowsocks从零开始一站式翻墙教程</a></p>
+<h3 id="VPS主机选购"><a href="#VPS主机选购" class="headerlink" title="VPS主机选购"></a>VPS主机选购</h3><p>注意：这些VPS服务商网址在部分地区被墙(DNS污染)，需要翻墙访问。不过在上面购买的VPS不受影响（IP直接访问）。</p>
+<ul>
+<li><a href="https://www.digitalocean.com/" target="_blank" rel="external">DigitalOcean</a><br>  KVM架构，512MB/1CPU，20GB SSD Disk，1TB流量/月，$5/month($0.007/hour)（折合人民币30元/月）<br>  我个人就是使用<a href="https://www.digitalocean.com/" target="_blank" rel="external">DigitalOcean</a>的VPS($5/month)，作为Shadowsocks服务器绰绰有余。<br>  推介计划：点击<a href="https://m.do.co/c/0ffb835591de" target="_blank" rel="external">推介地址</a>注册DigitalOcean帐号，可以立即到帐$10用于试用；</li>
+<li><a href="https://bandwagonhost.com/" target="_blank" rel="external">搬瓦工(BandwagonHOST)</a><br>  OpenVZ架构，256MB内存，10GB硬盘，500GB流量/月，19.99美元/年（折合人民币10元/月）<br>  OpenVZ架构，512MB内存，20GB硬盘，1TB流量/月，49.99美元/年（折合人民币25元/月）</li>
+<li><a href="https://www.linode.com/" target="_blank" rel="external">Linode</a><br>  Xen架构，1GB内存，24GB硬盘，2TB流量/月，10美元/月（折合人民币60元/月）<br>  只推荐给对连接速度和网络延迟有极致追求的用户，一般DigitalOcean或BandwagonHOST足以满足一般翻墙要求。</li>
+</ul>
+<p>DigitalOcean和搬瓦工两家的VPS都支持PayPal付款，DigitalOcean也可以选择在账单里绑定信用卡进行支付。<br>Linode只能使用信用卡支付，官方会随机手工抽查，被抽查到的话需要上传信用卡正反面照片以及可能还需要身份证正反面照片，只要材料真实齐全，审核速度很快，一般一个小时之内就可以全部搞定。账户成功激活以后，就可以安心使用了。</p>
+<blockquote>
+<p>OpenVZ为不完全虚拟化技术，每个VPS账户共享母机内核，易受同一母机下其他VPS的影响，几乎不能单独修改内核。Xen和KVM为完全虚拟化技术，各VPS之间互相独立，基本互不影响，而且可以任意修改内核。<br>这三种架构对我们搭建shadowsocks服务器来讲最直观的区别就是，Xen和KVM可通过系统内核修改来优化服务器，大幅度提升shadowsocks的连接速度，尤其体现在晚高峰的时候。</p>
+</blockquote>
+<h3 id="在VPS中搭建Shadowsocks服务器端程序"><a href="#在VPS中搭建Shadowsocks服务器端程序" class="headerlink" title="在VPS中搭建Shadowsocks服务器端程序"></a>在VPS中搭建Shadowsocks服务器端程序</h3><p>充值完毕后，就可以通过网页操作创建对应的虚拟机映像，开启虚拟机映像后，根据其IP、SSH端口、root密码，就可以在任意一台电脑上远程登录VPS。<br>windows推荐使用putty登录, Linux直接通过命令行ssh工具登录:</p>
+<pre><code>$ ssh root@192.168.1.100 -p 22
+</code></pre><ul>
+<li>Shadowsocks Server下载地址: <a href="https://shadowsocks.org/en/download/servers.html" target="_blank" rel="external">https://shadowsocks.org/en/download/servers.html</a></li>
+<li>Shadowsocks Server <a href="https://github.com/shadowsocks/shadowsocks/blob/master/README.md" target="_blank" rel="external">README.md</a></li>
+</ul>
+<h4 id="Install"><a href="#Install" class="headerlink" title="Install"></a>Install</h4><p>Debian / Ubuntu:</p>
+<pre><code>apt-get install python-pip
+pip install shadowsocks
+</code></pre><p>CentOS:</p>
+<pre><code>yum install python-setuptools &amp;&amp; easy_install pip
+pip install shadowsocks
+</code></pre><h4 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h4><pre><code>ssserver -p 443 -k password -m aes-256-cfb
+</code></pre><p>To run in the background:</p>
+<pre><code>sudo ssserver -p 443 -k password -m aes-256-cfb --user nobody -d start
+</code></pre><p>To stop:</p>
+<pre><code>sudo ssserver -d stop
+</code></pre><p>To check the log:</p>
+<pre><code>sudo less /var/log/shadowsocks.log
+</code></pre><h4 id="Arch-Linux-Install-Shadowsocks-Server"><a href="#Arch-Linux-Install-Shadowsocks-Server" class="headerlink" title="Arch Linux - Install Shadowsocks Server"></a>Arch Linux - Install Shadowsocks Server</h4><pre><code>$ sudo pacman -S git python2
+$ python2 --version
+Python 2.7.11
+$ git clone -b master https://github.com/shadowsocks/shadowsocks
+$ cd shadowsocks/shadowsocks
+$ sudo python server.py -p 8388 -k password -m aes-256-cfb
+</code></pre><ul>
+<li><code>-p</code>, 设定server_port;</li>
+<li><code>-k</code>, password;</li>
+<li><code>-m</code>, 加密方式;</li>
+</ul>
+<h4 id="Ubuntu-Install-Shadowsocks-Server"><a href="#Ubuntu-Install-Shadowsocks-Server" class="headerlink" title="Ubuntu - Install Shadowsocks Server"></a>Ubuntu - Install Shadowsocks Server</h4><p>shadowsocks-python is the initial version written by @clowwindy. It aims to provide a simple-to-use and easy-to-deploy implementation with basic features of shadowsocks.<br>First, make sure you have Python 2.6 or 2.7.</p>
+<pre><code>$ python --version
+Python 2.7.6
+$ sudo pip install shadowsocks
+$ ssserver -p 8388 -k password -m aes-256-cfb
+</code></pre><h4 id="添加配置文件-shadowsocks-json"><a href="#添加配置文件-shadowsocks-json" class="headerlink" title="添加配置文件 shadowsocks.json"></a>添加配置文件 shadowsocks.json</h4><pre><code>$ sudo vim /etc/shadowsocks.json
+</code></pre><p><code>/etc/shadowsocks.json</code>:</p>
+<pre><code>{
+    &quot;server&quot;:&quot;0.0.0.0&quot;,
+    &quot;server_port&quot;:8388,
+    &quot;local_port&quot;:1080,
+    &quot;password&quot;:&quot;barfoo!&quot;,
+    &quot;timeout&quot;:600,
+    &quot;method&quot;:&quot;aes-256-cfb&quot;,
+    &quot;auth&quot;: true
+}
+</code></pre><p>Shadowsocks Server配置信息:</p>
+<ul>
+<li><code>server</code>:       Shadowsocks Server IP, VPS的IP或Shadowsocks服务器IP;</li>
+<li><code>server_port</code>:  Shadowsocks Server Port;</li>
+<li><code>local_port</code>:   Local Proxy Port, 本地代理地址，其他应用程序想要通过SOCKS 5通道上网，就在其他应用程序的代理设置该端口，一般为<code>(127.0.0.1:1080)</code>;</li>
+<li><code>password</code>:     Shadowsocks Server Encrypt Transfer Password;</li>
+<li><code>timeout</code>:      Connections timeout in seconds;</li>
+<li><code>method</code>:       encryption method, “bf-cfb”, “aes-256-cfb”, “des-cfb”, “rc4”, etc.<br>  Default is table, which is not secure. “aes-256-cfb” is recommended.</li>
+<li><code>auth</code>:         one-time authentication, set true to enable one-time authentication feature.</li>
+</ul>
+<p>Linux - Shadowsocks Server:</p>
+<pre><code># 通过pip install安装shadowsocks, 则:
+$ /usr/bin/python /usr/bin/ssserver -c /etc/shadowsocks.json
+
+# 或者, 通过git clone下在shadowsocks, 则:
+$ sudo python2 /home/sean/shadowsocks/shadowsocks/server.py -c /etc/shadowsocks.json
+</code></pre><h4 id="用supervisord管理python进程，实现开机自动启动Shadowsocks服务器程序"><a href="#用supervisord管理python进程，实现开机自动启动Shadowsocks服务器程序" class="headerlink" title="用supervisord管理python进程，实现开机自动启动Shadowsocks服务器程序"></a>用supervisord管理python进程，实现开机自动启动Shadowsocks服务器程序</h4><p>Supervisor 是基于 Python 的进程管理工具，只能运行在 Unix-Like 的系统上，也就是无法运行在 Windows 上。Supervisor 官方版目前只能运行在 Python 2.4 以上版本，但是还无法运行在 Python 3 上，不过已经有一个 Python 3 的移植版 supervisor-py3k。</p>
+<pre><code># Arch Linux
+$ sudo pacman -S supervisor
+$ sudo su - root -c &quot;echo_supervisord_conf &gt; /etc/supervisord.conf&quot;
+
+# Ubuntu
+$ sudo pip install supervisor
+$ sudo su - root -c &quot;echo_supervisord_conf &gt; /etc/supervisord.conf&quot;
+</code></pre><p>并在<code>/etc/supervisord.conf</code>下添加:</p>
+<pre><code>[program:shadowsocks]
+command=ssserver -c /etc/shadowsocks.json
+autostart=true
+autorestart=true
+user=root
+log_stderr=true
+logfile=/var/log/shadowsocks.log
+</code></pre><p>配置开机启动supervisord, 如果是Ubuntu/CentOS, 则在<code>/etc/rc.local</code>里添加:</p>
+<pre><code># 如果是 Ubuntu 添加以下内容
+/usr/local/bin/supervisord -c /etc/supervisord.conf
+
+# 如果是 Centos 添加以下内容
+/usr/bin/supervisord -c /etc/supervisord.conf
+</code></pre><p>若为Arch Linux, 则在Shell运行:</p>
+<pre><code>$ sudo systemctl enable supervisord
+</code></pre><p>参考: <a href="https://www.restran.net/2015/10/04/supervisord-tutorial/" target="_blank" rel="external">Python 进程管理工具 Supervisor 使用教程</a></p>
+<h3 id="shadowsocks-公共代理的必要设置"><a href="#shadowsocks-公共代理的必要设置" class="headerlink" title="shadowsocks 公共代理的必要设置"></a>shadowsocks 公共代理的必要设置</h3><p>参考: <a href="http://www.atgfw.org/2015/02/shadowsocks_10.html" target="_blank" rel="external">shadowsocks 公共代理的必要设置</a><br>建议不要把自己的Shadowsocks帐号共享给太多人。「不要把人想得太好，但也不要把人想得太坏，都是凡人。」<br>个人租用VPS并部署shadowsocks服务器端，个人流量较小，也不易被GFW注意到。很多翻墙软件的特点是公共代理，很多人使用，当很多墙内客户端都在短时间内（或者说同时）长时间连接到一个或几个国外远程服务器上时，就会引起GFW的注意并被很快封杀。VPS的IP被封杀的话，就需要重新创建一个虚拟机镜像或切换机房。<br>如果非要作为公共代理，建议设置以下几点：</p>
+<ul>
+<li>超时时间越长，连接被保持得也就越长，导致并发的tcp的连接数也就越多。对于公共代理，这个值应该调整得小一些。推荐60秒。</li>
+<li>在VPS上检查最大文件描述符数量<code>$ ulimit -n</code>, 公共代理需要更多并发的TCP连接数，<code># ulimit -n 8000</code>提高限制。ulimit的设置是一次性的，每次启动ss-server之前都要设置一下。</li>
+<li><p>只要shadowsocks被公开出去，肯定会有人拿代理用于暴力破解ssh的密码。推荐你把shadowsocks限制为只允许访问443和80两个端口。如果你不添加这样的限制，很多vps商都会因为ssh连接开得太多而暂停对你的服务。<br>具体做法: 让ss-server以特定的用户启动</p>
+<pre><code>$ sudo adduser http-ss
+$ su http-ss -c &quot;ssserver -s 0.0.0.0 -p 443 -k password -m aes-256-cfb -d&quot;
+
+# 对于http-ss用户，限制其不能访问80,443之外的端口
+$ sudo iptables -t filter -A OUTPUT -d 127.0.0.1 -j ACCEPT
+$ sudo iptables -t filter -m owner --uid-owner http-ss -A OUTPUT -p tcp --sport 1080 -j ACCEPT
+$ sudo iptables -t filter -m owner --uid-owner http-ss -A OUTPUT -p tcp --dport 80 -j ACCEPT
+$ sudo iptables -t filter -m owner --uid-owner http-ss -A OUTPUT -p tcp --dport 443 -j ACCEPT
+$ sudo iptables -t filter -m owner --uid-owner http-ss -A OUTPUT -p tcp -j REJECT --reject-with tcp-reset
+</code></pre></li>
+<li>避免shadowsocks帐号被用于bt下载（美国的DMCA版权法律），对80端口的流量再进一步进行限制（下载nginx并限制流量）。</li>
+</ul>
+<h2 id="购买Shadowsocks服务器帐号"><a href="#购买Shadowsocks服务器帐号" class="headerlink" title="购买Shadowsocks服务器帐号"></a>购买Shadowsocks服务器帐号</h2><p>除了自己选购VPS(需要一定的Linux运维能力)，也可以直接使用别人搭建好的VPS与Shadowsocks服务器。<br>我个人使用过<a href="https://portal.shadowsocks.com/aff.php?aff=2104" target="_blank" rel="external">shadowsocks.com</a>的服务器，提供有：</p>
+<ul>
+<li>Shadowsocks.com 普通版 - $15.95USD (同一时间同一个账号仅限一个终端使用)</li>
+<li>Shadowsocks.com 高级版 - $63.95USD (同一个账号同时支持 5 个终端使用)</li>
+</ul>
+<p>注意，shadowsocks.com不是官方网址，而是一个帐号提供商，不具有权威性，官方网址为<a href="https://shadowsocks.org/" target="_blank" rel="external">shadowsocks.org</a>;<br>类似的帐号提供商还有很多，其他我没用过的就不发布评论，大家可以自行Google搜索。</p>
+<h2 id="配置Shadowsocks客户端"><a href="#配置Shadowsocks客户端" class="headerlink" title="配置Shadowsocks客户端"></a>配置Shadowsocks客户端</h2><p>Shadowsocks Client下载地址: <a href="https://shadowsocks.org/en/download/clients.html" target="_blank" rel="external">https://shadowsocks.org/en/download/clients.html</a><br>无论是自己搭建Shadowsocks服务器，还是使用别人提供的服务器，最后都还需要在自己的电脑上运行Shadowsocks客户端，连接服务器，才可以科学上网。</p>
+<ul>
+<li>客户端可以使用不同平台的GUI版本，优点是使用方便，可以随时启动关闭，随时切换服务器。</li>
+<li>也可以使用通用的命令行版本，优点是同一个程序在各个平台编译后就可以使用，占用资源更小，软件更新速度快。</li>
+</ul>
+<h3 id="客户端-GUI版"><a href="#客户端-GUI版" class="headerlink" title="客户端 - GUI版"></a>客户端 - GUI版</h3><p>下载对于平台的GUI客户端，运行之后，要添加server相关信息(server, server_port, password, method…);</p>
+<pre><code>服务器：你的VPS IP地址（非0.0.0.0）
+远程端口：8388
+本地端口：1080
+密码：yourpassword
+加密方法：AES-256-CFB
+路由：绕过局域网及中国大陆地址
+全局代理：勾选
+UDP转发：建议勾选，如有问题则取消勾选
+自动连接：勾选
+</code></pre><h4 id="Shadowsocks-for-OSX"><a href="#Shadowsocks-for-OSX" class="headerlink" title="Shadowsocks for OSX"></a>Shadowsocks for OSX</h4><p>For OS X, use <a href="http://brew.sh" target="_blank" rel="external">Homebrew</a> to install or build.<br>Install Homebrew:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ruby <span class="_">-e</span> <span class="string">"<span class="variable">$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)</span>"</span></div></pre></td></tr></table></figure></p>
+<p>Install Shadowsocks:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">brew cask install shadowsocksx</div></pre></td></tr></table></figure></p>
+<p>Shadowsocks for OSX可以正常使用，但是已经一年多没有维护了（<a href="https://github.com/clowwindy" target="_blank" rel="external">@clowwind</a> 由于政策原因不再维护）。</p>
+<h3 id="客户端-CLI版"><a href="#客户端-CLI版" class="headerlink" title="客户端 - CLI版"></a>客户端 - CLI版</h3><h4 id="Intro"><a href="#Intro" class="headerlink" title="Intro"></a>Intro</h4><p><a href="https://github.com/shadowsocks/shadowsocks-libev" target="_blank" rel="external">shadowsocks-libev</a> is a lightweight secured SOCKS5 proxy for embedded devices and low-end boxes.<br>It is a port of <a href="https://github.com/shadowsocks/shadowsocks" target="_blank" rel="external">Shadowsocks</a> created by <a href="https://github.com/clowwindy" target="_blank" rel="external">@clowwindy</a>, which is maintained by <a href="https://github.com/madeye" target="_blank" rel="external">@madeye</a> and <a href="https://github.com/linusyang" target="_blank" rel="external">@linusyang</a>.</p>
+<h4 id="Features"><a href="#Features" class="headerlink" title="Features"></a>Features</h4><p>Shadowsocks-libev is written in pure C and only depends on <a href="http://software.schmorp.de/pkg/libev.html" target="_blank" rel="external">libev</a> and <a href="http://www.openssl.org/" target="_blank" rel="external">OpenSSL</a> or <a href="https://polarssl.org/" target="_blank" rel="external">PolarSSL</a>. The use of <a href="https://tls.mbed.org/" target="_blank" rel="external">mbedTLS</a> is added but still for testing, and it is not officially supported yet.<br>In normal usage, the memory footprint is about 600KB and the CPU utilization is no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU, 32MB memory and 4MB flash).<br>For a full list of feature comparison between different versions of shadowsocks, refer to the <a href="https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions" target="_blank" rel="external">Wiki page</a>.</p>
+<h4 id="Usage-1"><a href="#Usage-1" class="headerlink" title="Usage"></a>Usage</h4><p>由于 Shadowsocks-libev 良好的通用性，建议使用 Shadowsocks-libev ，任何平台都可以使用。Shadowsocks-libev提供的命令行工具：<code>ss-[local|redir|server|tunnel]</code>，其中<code>ss-server</code>用于搭建shadowsocks服务器，<code>ss-local</code>用于连接服务器。命令的使用与上面的<code>ssserver</code>相同，不过这个是C语言版本实现的。<br><code>shadowsocks.json</code>的格式同服务器的配置文件，需要修改的就是<code>server</code>部分，不再是<code>0.0.0.0</code>，而是一个可以ping通的IP地址。</p>
+<pre><code>ss-local -c shadowsocks.json
+</code></pre><h3 id="本地SOCKS-5代理（必须配置！）"><a href="#本地SOCKS-5代理（必须配置！）" class="headerlink" title="本地SOCKS 5代理（必须配置！）"></a>本地SOCKS 5代理（必须配置！）</h3><p><strong>打开客户端并不意味着就可以翻墙？！</strong><br>shadowsocks client只是打开本地的<code>local_port</code>开始监听，发往<code>local_port</code>的数据会发往<code>server</code>，以实现翻墙代理。没有发往<code>local_port</code>的数据，是无法翻墙的。<br>因此，对于本地需要翻墙的应用，例如Chrome，Dropbox等，必须要在各自应用的配置选项中，找到代理<code>Proxy</code>选项，选择<code>SOCKS 5</code>代理选项，并填写:<code>代理IP 127.0.0.1</code>, <code>端口 1080</code>。</p>
+<h1 id="匿名与信息安全"><a href="#匿名与信息安全" class="headerlink" title="匿名与信息安全"></a>匿名与信息安全</h1><p><a href="http://www.chinagfw.org/2015/02/ghost-assassin_10.html" target="_blank" rel="external">翻墙与匿名与信息安全科普文链接集合</a></p>
+<h2 id="翻墙手段-安全度有高到低"><a href="#翻墙手段-安全度有高到低" class="headerlink" title="翻墙手段(安全度有高到低)"></a>翻墙手段(安全度有高到低)</h2><ol>
+<li>I2P： 安全性最强的匿名软件，没有之一，但是速度极慢，基本上不是人能忍受的，<a href="http://program-think.blogspot.com/2012/06/gfw-i2p.html" target="_blank" rel="external">配置教程</a>。</li>
+<li>TOR：大名鼎鼎的洋葱路由，令NSA头大，实质是动态三重代理，推荐<a href="https://plus.google.com/109790703964908675921/posts/QqZ1z7akz6Q" target="_blank" rel="external">TOR+前置代理组合</a>。</li>
+<li>shadowsocks：一个轻量级socks加密代理，全主流平台支持。<br>简单来说，shadowsocks就是一个一重加密socks代理，本机上的客户端先与远程服务器（配置了shadowsocks服务端程序的VPS）端建立连接，远程服务器再与目标网站连接从而成功翻墙。<br>首先，VPN无法进行远程DNS解析，所以很多时候在使用VPN的同时还要设定好一个国外的DNS服务器才能正常翻墙（很多人反映很多时候挂着VPN都无法正常打开FB，推特等网站，其实就是因为没有设定国外DNS服务器而遇到了DNS污染）；<br>而shadowsocks默认就支持远程DNS解析（因为socks5代理支持远程DNS解析），这样就省去了配置国外DNS服务器的麻烦，同时还防止了信息泄露：DNS查询直接递给远程代理服务器，然后通过墙外DNS服务器查询得到结果再传回客户端，这样ISP就无法通过DNS查询知道你访问了哪个网站了（而不支持远程DNS解析的VPN就留下了泄露访问信息的隐患），同时也避开了DNS污染。</li>
+<li>VPN：VPN启动后一直是全局代理，不方便浏览墙内网站。不要相信墙内存活的VPN服务商。一旦涉及到付费这一环节，你就很容易被追踪到。所有的VPN都能成为TOR的前置代理。</li>
+<li>Lantern：<ul>
+<li>1.X版本）建立在脆弱的Gtalk服务上，以对等网络P2P的形式翻墙，提供了一种用户可信赖的节点绕过互联网封锁，安全性没有保障(加密机制较弱, 固定端口的传输模式极易受到 GFW 的判定后遭到封杀, Lantern客户端在运行时还会公布出连接服务器的具体IP地址，这一做法会直接招致GFW的封杀和屏蔽)。有了 Lantern，每一台电脑都可以变成服务器。通过运行 Lantern，每一个拥有不受审查的网络的用户可以为那些没有条件的用户提供连接，以此来提供连接到被审查网站（如 Twitter、Facebook 和YouTube）的途径。Lantern的P2P结构抵抗审查是建立在用户信任链基础上的。如果你邀请的朋友不小心邀请了GFW工作人员，你的代理节点也被封锁。</li>
+<li>2.X版本）2015年，蓝灯推出2.0版，用户不再需要通过邀请来连接，且使用网页UI代替客户端式的设置方式。2.X版本不再使用1.X版时的P2P模式，而是使用代理服务器的模式。</li>
+<li><a href="https://bitinn.net/10629/" target="_blank" rel="external">初窥万花筒，浅析Lantern背后的Kaleidoscope设计</a> Lantern的定位是P2P网络封锁突破工具，以其“通过信任圈子”传播服务信息的特色作为主要卖点，对抗见洞插针（probing）的防火墙系统。核心技术Kaleidoscope是一个P2P中继系统，主要用途是让被封锁网络域内的用户能访问到被封锁的内容。换而言之，Kaleidoscope的主要目的就是突破网络内容封锁，而非匿名或传输安全性。后者分别是Tor与VPN的主要特性。</li>
+</ul>
+</li>
+<li>GAE类翻墙工具, 不原生支持HTTPS（也就是说无法成为TOR的前置代理），无法防范中间人攻击，加密程度不高（早期无加密），安全性很低，建议只用来浏览网页。<a href="https://plus.google.com/109790703964908675921/posts/QqZTB5EdLEV" target="_blank" rel="external">GAE类翻墙软件的风险</a></li>
+<li>修改hosts与躲避DNS污染：毫无安全性可言，目标网站可以看到你的真实公网IP，但速度最快。</li>
+</ol>
+<p>推荐：<a href="https://plus.google.com/109790703964908675921/posts/LyWo2agoau3" target="_blank" rel="external">TOR+前置代理</a></p>
+<h2 id="保护和慎用匿名、假名的权利"><a href="#保护和慎用匿名、假名的权利" class="headerlink" title="保护和慎用匿名、假名的权利"></a>保护和慎用匿名、假名的权利</h2><p><a href="http://blog.sina.com.cn/s/blog_4cacf1f30102ecwu.html" target="_blank" rel="external">保护和慎用匿名、假名的权利 - 徐贲</a></p>
+<ul>
+<li>在你失去匿名之前，你不会知道它有多么可贵。匿名是一种个人的隐私权，是不想让人知道你是谁的时候，有法律在保护你不让别人知道。</li>
+<li>目前网络上的言论发表，使用的大多是匿名和假名，允许使用匿名和假名应该成为维护互联网言论自由空间的一个重要条件。从平衡个人隐私、公众言论责任和公民伦理着眼，网络实行“有限实名制”，即“后台实名，前台匿名”，要比强制性禁止匿名或假名更符合白皮书的精神。</li>
+<li>有必要区别网络上的匿名和假名（用笔名），匿名和假名与实名（真名）的关系是不同的。“匿名”（anonymity）一词原意是“没有名字”或“无名”。 匿名是把真实姓名藏匿起来，变得“无名”。</li>
+<li>在一个正常的公共社会里，匿名和假名与实名（真名）一样，有它们的身份标志功能，需要具体地看待，不可一概而论地偏废。</li>
+</ul>
+<h1 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h1><p>之所以写这篇博客，有以下几点：</p>
+<ul>
+<li>一是整理之前看到的科学上网攻略；作为一名互联网爱好者，热衷于获取自由的互联网信息并将其实践到实际生活中。</li>
+<li>二是帮助需要科学上网的同学梳理思路，简介科学上网的大致流程。科学上网并不难，墙也并不可怕。热爱自由的思想是不怕子弹的，可怕的是一个国家的人民固步自封而又妄自尊大，可怕的是人民无知而又对其“无知”而无知。古有百家争鸣亦有焚书坑儒，近有闭关自守又有戊戌变法。书犹药也，善读之可以医愚，以史为鉴，自强不息。</li>
+<li>三是悼念一位学弟(<a href="http://www.ifanr.com/651797" target="_blank" rel="external">青年魏则西之死</a>)，天下熙熙皆为利来，天下攘攘皆为利往，我也不想评论百度、医院、监管、政策的是非曲直，历史自有定论。我只是希望作为当代大学生，可以在喧嚣的互联网时代学会保护自己，扩大知识普及，减少信息不对称，避免下一个因为无知而再次发成的悲剧，并且尽我所能去帮助他人(To grow and to help others grow. To live and to help others live.)。</li>
+</ul>
+<blockquote class="blockquote-center"><br>我向来是不惮以最坏的恶意，来推测中国人的，然而我还不料，也不信竟会下劣凶残到这地步。况且始终微笑着的和蔼的刘和珍君，更何至于无端在府门前喋血呢？<br>惨象，已使我目不忍视了；流言，尤使我耳不忍闻。我还有什么话可说呢？我懂得衰亡民族之所以默无声息的缘由了。沉默呵，沉默呵！不在沉默中爆发，就在沉默中灭亡。<br>苟活者在淡红的血色中，会依稀看见微茫的希望；真的猛士，将更奋然而前行。<br>鲁迅《记念刘和珍君》<br></blockquote>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Across the Great Wall we can reach every corner in the world.&lt;br&gt;「越过长城，走向世界每个角落」&lt;br&gt;中国互联网发送的第一封电子邮件（1987年）&lt;br&gt;&lt;/blockquote&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
+    
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>电子时代深度阅读离不开书籍</title>
+    <link href="http://seanxp.com/2016/reading-need-book/"/>
+    <id>http://seanxp.com/2016/reading-need-book/</id>
+    <published>2016-05-06T06:39:29.000Z</published>
+    <updated>2017-02-03T08:09:51.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>原文: <a href="http://blog.sina.com.cn/s/blog_4cacf1f30102wa4r.html" target="_blank" rel="external">电子时代深度阅读离不开书籍</a><br>作者: 徐 贲<br><a id="more"></a><br>每年到了4月23日世界读书日，都有人在倡导读书。那么，什么是“读书”呢？读书有两个意思，一个是一般的“阅读”，另一个则是特指“阅读书籍”。电子时代更需要强调的也许是后一个意思的读书，因为阅读书籍（读书）比阅读电子屏幕文字（读屏）更是一种专注的阅读。<strong>这里要谈的不是一般的阅读，而是深度阅读，一种需要专注和深入思考的深层阅读。</strong></p>
+<font color="red"><br><strong>深层阅读不仅是为了获取信息和知识，而且也是通过阅读来细致辨析和深入思考。培养这种思考习惯和能力，是对每个人都有意义的素质教育和人生历练。</strong></font>人类寻找并得益于深度经验，正如美国作家鲍尔斯（William Powers）在《哈姆雷特的蓝莓》（Hamlet’s<br>BlackBerry）一书中所说，无深度则不能扎根，<font color="red"><strong>“深度让我们能扎根于这世界，让生命有质量和完整，丰富我们的工作、与他人的关系，以及我们所做的每一件事情”</strong></font>。在信息令人应接不暇，无法集中心思的环境中读屏，难以觅得这样的深度阅读。<br><font color="red"><strong>而如果只是满足于电子屏幕上的浅层阅读，那么，久而久之，人会变得精神涣散，无论阅读什么都是走马看花，自己没有深入、明确的想法，凡事便只能是道听途说、人云亦云。</strong></font>
+
+<p>就深度阅读而言，读书优于读屏。<font color="red"><strong>在数码时代，读屏不能代替读书，阅读重要著作、较长和有难度的文本，阅读需要深入理解和思考的读物，都应该以读书为优先选择。</strong></font><br>当然，如果得不到书籍，那么屏上阅读也比不阅读为佳。从现有的心理学和认知神经学研究成果来看，可以从三个方面说明纸上阅读优于屏幕阅读。这三个方面分别是视觉因素、阅读认知和学习机制认识。</p>
+<h1 id="一、读书和读屏的生理差别"><a href="#一、读书和读屏的生理差别" class="headerlink" title="一、读书和读屏的生理差别"></a>一、读书和读屏的生理差别</h1><font color="red"><strong>读书优于读屏的第一个原因是视觉疲劳。</strong></font><br>无论是在纸上，还是在阅读器（如平板）或电脑屏幕上阅读，都需要用眼。<font color="red"><strong>阅读时眼力专注，必然会减少眨眼的次数，这就会增加眼球上泪水的蒸发，也就是所谓的“干眼”（dry<br>eye）。干眼会引起疲劳、头部不适、视力模糊、对光亮敏感等症状。</strong></font><br>科学实验发现，眼睛不舒服会影响学习的能力和效果。阅读时间越长，阅读物难度越大，这种影响就越明显。现有的研究发现，一般而言，<font color="red"><strong>读屏造成的眼疲劳程度超过读书，对需要高度注意力的深层阅读来说更是如此。</strong></font><br>专注的阅读（如研读）比浏览更需要眼力注视，所以更容易使阅读者觉得“累”。网上文章三五千字就觉得很长，但纸质读物要到近万才有长的感觉。<br><br>以长远的眼光来看，生理疲劳也许不是读书优于读屏最重要的理由。这是因为，科技的发展很可能进一步减小纸上阅读和屏幕阅读在这方面的差距。<br>但是，随着电子书正在努力朝越来越“像书”的方向发展，便会产生这样的问题：<br><br>&gt; 电子书为什么要像书呢——这本身不就显示了读书相对于读屏的优势吗？<br><br>既然如此，为什么不能不能让书籍发挥书籍的作用，而让电子读物另外发挥书籍不能或不便发挥的作用呢？电子读物可以取代百科全书、手册、条例或使用说明，可以运用于新闻报道、旅游、烹调、儿童读物，但是否也就能取代“重要著作”的书籍了呢？<br><br># 二、读书和读屏的阅读认知差别<br>读书优于读屏的第二个理由与阅读认知有关，这涉及阅读时人脑的功能特征。对人脑的认知神经学研究发现，人类天生并不会阅读，人的大脑里至今并没有专司阅读的基因组。美国认知精神学家玛丽安娜•沃尔夫(Maryanne<br>Wolf)在《普鲁斯特与乌贼》（中国人民大学出版社，2012年）中指出，人的大脑里“没有特定的基因组直接负责阅读功能”（第20页）。<br>人类经历2000年之久，才实现了认知能力的突破，学会阅读字母表，而现在的儿童只需大约2000天就学会了同样的知识。<br><font color="red"><strong>一个为学习阅读而不断进行“重组”的大脑——她称之为“阅读脑”——是每个人必须在学习过程中自行发展的一种智能。</strong></font>每个人的大脑需要在负责视觉、语言、辨别物体等等基因组之间建立联接，才能学习阅读这项新的技能。每一代的每一个儿童都需要重复这样的发展过程。有经验的，成熟的阅读者可以帮助初学者完成这个过程，逐渐成为成熟的阅读者，但无法代替他完成这个过程。正如沃尔夫所说，从认知神经学的科学角度研究阅读脑，“提出的根本性问题是关于如何培养下一代人‘深入阅读’的能力和素质”。<br><br>阅读时，人脑把已有的大脑功能调动起来，加以协调，用来处理字母或字词的信息，短期储存在记忆中，以便维持一定时段间的思考。<br><font color="red"><strong>对于阅读中的大脑来说，越是有助于调动和协调已有的大脑功能，阅读理解的效果就越好。</strong></font>读书之所以优于读屏，是因为读书更能调动和协调人脑的阅读功能，因此更有利于与“理解”有关的深层阅读。<br><br>例如，对人脑来说，书写的字词是有形的辨认对象，而由字词组合而成的文本则构成了某种“思想景观”（thought-landscape），在这片景观中，与特定字词相联系的“意义”或“意思”（meaning）会占据着某个或某些特定的地方。阅读的时候，我们想到某个意思，经常会同时想到大概在书里什么方位见到过某个或某些字词，也能大致找回某种印象中的“地方”——在书页的某个方位，在书的开篇处、中间部位或其他什么地方。在阅读思考时，为了把这个意思回想得更清楚，我们也会翻书去寻找大致记得的那些地方。<br><font color="red"><strong>这种追溯性的寻找（把书翻来翻去），类似于在树林里或一个陌生地方寻找熟悉的标记，以弄清楚自己到底是在什么地方。研究者们称此为navigation（“梭巡”“巡航”），指的是为了导航而找出一个方向来。</strong></font><br>对专注的阅读来说，这个方向就是阅读在思考中想要确定的意思。网上阅读或电子书阅读都很难借助这种梭巡的机能，当然，也很少以这样的思考或思索为阅读的目的。<br><br>为了证明阅读中这种实体感的“梭巡”作用，心理学家安娜·曼艮（Anne Mangen）设计了一个阅读实验，它需要阅读者在阅读过程中运用先前读到的部分。文本共四页，测试用的是理解性的问题。参加测试的学生中，有一半在没有页码的pdf文档上阅读，另一半在纸页上阅读。结果发现，纸上阅读的学生们获得的理解成绩要好得多。曼艮推测，阅读理解与在头脑里重构文本之间存在着某些联系，“纸页上的文本是固定的，这有助于文本的空间构建，让读者有明确和固定的提示，形成文本记忆和记忆唤回”。<br><br>除了能够帮助形成文本记忆和唤回记忆，读书比读屏对阅读较少有分心和打岔的不利影响。网上的文本链接（hyperlinked<br>text）被认为是一种有用的学习工具，但是，<font color="red"><strong>对深层阅读来说，文本链接有不可忽视的负面作用。</strong></font><br>研究者发现，阅读中每次遇到一个链接，都需要阅读者作出是否要打开的决定，这就增加了阅读者的认知负担。对阅读的大脑来说，每一个链接都是一个阅读内容本身之外的额外负担。如果打开链接，读者的注意力便会转换方向，可能难以与先前的思维连接起来。就算阅读者决定不打开链接，链接部分的颜色也会对阅读造成分心。神经学家乔尔·品特（Joel Pynte）在研究错字对眼球活动的作用时发现，任何在眼副中央凹预视（Parafoveal）<br>区内的文本都会吸引目光，在目光扫视时造成信息中断，因而影响阅读速度和注意力，形成认知干扰（cognitive distraction）。<br><br>还有研究者发现，在屏读和纸读的理解程度相同或相似的时侯，屏读是记住内容，而纸读则是理解内容。人们经常误以为记住就等于理解。然而，心理学研究发现，这二者在认知上有很大差异。你可以记住一个概念，但不理解它（死记硬背或一知半解的“记得”即属此类）。然而，只有理解了一个概念，才能对短期记得的东西形成长期记忆，也才能灵活地加以运用。这时候你才可以说“懂了”“理解了”或“知晓了”。死记硬背的“知识”只是一个短期记忆，对理解有难度的读物并无用处。这种情况在外语系学生中尤其普遍。他们习惯于生硬强记，把这当作一种本领，以此衡量学习的能力或确定学习的目标。他们也进行阅读，但只经常是文字的被动接受者，文字的障碍使他们经常似懂非懂，一知半解，即使理解了文字，也很少有思考型阅读的。这是一种因长期不得不死记硬背而不幸罹患的知识疾病。<br><br># 三、读书和读屏的学习认知差别<br>屏读和纸读的差别不仅表现在阅读认知上，而且还表现在更高层次的学习认知上。不少研究者发现，屏读不适宜于较长的学术或严肃文本，如果单就读屏而言，那么，平板电子阅读器要优于电脑荧屏。有研究者发现，许多人就算用平板电子阅读器阅读，也很难有阅读书籍的那种热情或投入，<font color="red">原因是读屏会让阅读者有“触觉失调”（haptic<br>dissonance）的问题。所谓“触觉失调”也就是手感不好。</font>平板阅读器模仿书籍，却没有书籍的样子、感觉和特性，给人以疏远、不真实和不舒服的感觉。有研究调查发现，平板阅读器的使用者中，有83%表示强烈偏好阅读纸质书籍。平板阅读器与书籍，如果内容一样，看上去只是阅读媒介的不同，但实际情况是，<font color="red">不同的媒介物理特性会有不同的认知价值。如果一种阅读媒介给人不舒服，不自然，不亲近的感觉，那是会影响阅读热情和效果的。</font>这一区别对于深层阅读的不利影响要远超于一般的浏览和消遣阅读，对阅读较长、难度较大的读物则更是如此。<br><br>以色列心理学家拉克菲特·阿克曼（Rakefet<br>Ackerman）于2010年对一些大学生做了一个主动学习的测试。她选了五篇较难阅读的说理文，每篇1200字，分成电子文本和纸质文本两个阅读组。她要求所以参加测试的学生都在阅读时做各种阅读记号——划线、亮色、页边笔记等等。电子文本阅读用的是电子文字处理工具，而纸上阅读则用笔和荧光笔。在规定阅读时间的情况下，这两组学生对理解问题的回答准确度几乎一样（62%）。但是，在学生需要用多少时间就允许他们用多少时间的情况下，纸读的学生成绩却高出另一组10%。在让学生估计自己错误的时候，测试结果也出现了差异。纸质读者的错误估计在4%之内，而读屏者则平均为10%。这似乎说明，读屏者对自己理解准确度的估计不如纸质读者。这个发现对深层阅读非常重要，因为深层阅读的一个基本要求就是能尽量准确地评估阅读的结果，发现并确定其中是否有误。<br><br>大多数认真对待学习的学生都有这样的经验：在阅读来自网上的有难度的教材时，会觉得需要打印出来，然后一面阅读，一面做笔记。这样的经验也能说明纸读与屏读的不同。有研究发现，<font color="red">在对待同样读物时，纸读者比屏读者更愿意在文本上做记号或做笔记。</font>屏读和纸读的心理感觉也不一样，阅读者会觉得纸上的文本更为严肃、重要、值得仔细研读并对之有所思考，而网上的材料则供快速浏览，主要是为了轻松消遣或快速获得信息，看过算数，不值得回头再去细读。<br><br>就是在阅读者知道读物重要性的情况下，纸读和屏读的差异性也能表现出来。2013年，阅读心理学家莎拉·玛格琳（Sara J.<br>Margolin）做了一个阅读理解的测试。她让参加测试者阅读几篇500字的记叙文和说理文，参加测试者分为三组，分别用纸、数码阅读器和LCD电脑阅读。理解测验结束后，参试者报告自己在阅读中用了什么学习方法。从测试结果来看，用电子阅读器的说理理解最差（100分中低了4分），这个差距也许并不大。但是，<font color="red">重要的差别在于，用电子阅读器的读者比较不愿意回到前面去复查阅读结果。这就可能影响了他们的理解准确性，因为复查一下的话，他们本来是可能纠正理解中的错误的。</font>
+
+<font color="red">记笔记是一种帮助阅读理解的有效认知手段。</font>心理学家潘姆·穆勒（Pam A. Mueller）等人发现，纸读有利于笔记，纸读者手里拿一支笔，比屏读者更容易，也更乐于在阅读中做笔记。而且，纸读者和屏读者做笔记的方式也不相同。纸读者用手写，比屏读者更愿意或倾向于用自己的话来简述或改述阅读的文字，这有利于消化和记忆学习的内容。<font color="red">消化和吸收的学习正是深层阅读的一个主要认知目标。</font>认知神经学家内奧米·沃尔夫（Naomi<br>Wolf）指出，用手书写有助于抽象思维，也有助于更准确地与他人交流。许多人都有这样的经验，在写东西的时候，不同写作目的会影响不同的书写意愿，例如，我们写便条或私人信件，直接在键盘上敲打便可，但若要写论文，则更愿意在纸上书写，因为这样写作更有利于思索和推敲。这与电子屏幕上适宜浅层阅读，而纸上则更适宜于深层阅读的区别是一致的。<br><br>了解和认识书籍和其他纸媒文字在深层阅读上的优势，这对青年学生们来说尤其重要。他们的阅读应该不只是为了获取现成的知识信息，更不只是满足于电子阅读的那种即兴浏览和浅尝辄止。<br><font color="red">他们正处于最需要用阅读书籍来增强思考能力的年龄，因此不能只是为了阅读而阅读，而是应该知道为什么阅读，阅读什么，通过阅读可以能培养怎样的智识素质和公民能力，而为了培养这样的素质和能力，又该如何进行阅读。为此，也就尤其需要重视和强调那种能培养独立思考和价值判断的批判性深层阅读。阅读能改变人的生活，但是，阅读改变人生活的程度和性质，主要取决于我们所读的书籍，以及我们阅读的方式。因此，适逢世界读书日，提醒一下电子时代的深度阅读离不开书籍，应该是一件有意义的事情。</font>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;原文: &lt;a href=&quot;http://blog.sina.com.cn/s/blog_4cacf1f30102wa4r.html&quot;&gt;电子时代深度阅读离不开书籍&lt;/a&gt;&lt;br&gt;作者: 徐 贲&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
+    
+      <category term="Reading" scheme="http://seanxp.com/tags/Reading/"/>
+    
+      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
+    
+      <category term="Book" scheme="http://seanxp.com/tags/Book/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>我的RSS订阅列表</title>
+    <link href="http://seanxp.com/2016/my-rss-list/"/>
+    <id>http://seanxp.com/2016/my-rss-list/</id>
+    <published>2016-05-05T12:41:50.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>我个人很喜欢RSS，少数量、高质量的RSS订阅，使人可以在纷繁杂乱的互联网潮流中，及时获取到真正有阅读价值的文章。<br>这里不做RSS的科普，网上已经有很多，善用搜索引擎就能找到。<br>关于RSS阅读器，我使用的是<a href="https://feedly.com/" target="_blank" rel="external">feedly</a>，客户端使用<a href="http://reederapp.com" target="_blank" rel="external">Reeder</a>。<br>良好的客户端阅读体验必不可少，但更重要的是RSS的订阅质量。</p>
+<a id="more"></a>
+<h2 id="OPML-RSS-always-updated"><a href="#OPML-RSS-always-updated" class="headerlink" title="OPML RSS (always updated)"></a>OPML RSS (always updated)</h2><p><strong> 2017/01/20 更新 <a href="http://seanxp.com/myrsslist.opml">myrss.opml</a> </strong></p>
+<p>OPML文件可直接导入自己的RSS源中。这里仅用于参考，不建议直接导入，毕竟不同的人对<strong>“有价值的订阅源”</strong>的定义也不同。</p>
+<h2 id="My-2016-RSS-List"><a href="#My-2016-RSS-List" class="headerlink" title="My 2016 RSS List"></a>My 2016 RSS List</h2><h3 id="Apple"><a href="#Apple" class="headerlink" title="Apple"></a>Apple</h3><p>订阅苹果公司及其产品的相关信息。</p>
+<ul>
+<li>少数派–分享好应用, <a href="http://sspai.com/feed" target="_blank" rel="external">http://sspai.com/feed</a></li>
+<li>Mac玩儿法, <a href="http://www.waerfa.com/feed" target="_blank" rel="external">http://www.waerfa.com/feed</a></li>
+</ul>
+<h3 id="Blogs"><a href="#Blogs" class="headerlink" title="Blogs"></a>Blogs</h3><ul>
+<li>读立写生, <a href="http://cnfeat.com/feed.xml" target="_blank" rel="external">http://cnfeat.com/feed.xml</a></li>
+<li>Raptitude.com, <a href="http://www.raptitude.com/feed/" target="_blank" rel="external">http://www.raptitude.com/feed/</a></li>
+<li>伯乐在线, <a href="http://blog.jobbole.com/feed/" target="_blank" rel="external">http://blog.jobbole.com/feed/</a></li>
+<li>学而时嘻之, <a href="http://www.geekonomics10000.com/feed/atom" target="_blank" rel="external">http://www.geekonomics10000.com/feed/atom</a></li>
+<li>xkcd.com, <a href="http://xkcd.com/atom.xml" target="_blank" rel="external">http://xkcd.com/atom.xml</a></li>
+<li>吕小荣, <a href="http://mednoter.com/feed.xml" target="_blank" rel="external">http://mednoter.com/feed.xml</a></li>
+<li>褪墨・时间管理，个人提升，生活健康与习惯, <a href="http://www.mifengtd.cn/feed.xml" target="_blank" rel="external">http://www.mifengtd.cn/feed.xml</a></li>
+<li>始终, <a href="http://liam0205.me/atom.xml" target="_blank" rel="external">http://liam0205.me/atom.xml</a></li>
+<li>Lucida, <a href="http://lucida.me/atom.xml" target="_blank" rel="external">http://lucida.me/atom.xml</a></li>
+<li>IT牛人博客聚合网站, <a href="http://www.udpwork.com/feed" target="_blank" rel="external">http://www.udpwork.com/feed</a></li>
+<li>Digital Meme, <a href="http://shibeichen.com/rss" target="_blank" rel="external">http://shibeichen.com/rss</a></li>
+<li>Matrix67: The Aha Moments, <a href="http://www.matrix67.com/blog/feed" target="_blank" rel="external">http://www.matrix67.com/blog/feed</a></li>
+<li>译言最新精选, <a href="http://feed.yeeyan.org/select" target="_blank" rel="external">http://feed.yeeyan.org/select</a></li>
+<li>BlahGeek’s Blog, <a href="https://blog.blahgeek.com/feeds/all.rss.xml" target="_blank" rel="external">https://blog.blahgeek.com/feeds/all.rss.xml</a></li>
+<li>Beyond the Void, <a href="https://www.byvoid.com/feed" target="_blank" rel="external">https://www.byvoid.com/feed</a></li>
+<li>GFW BLOG（功夫网与翻墙）, <a href="http://www.chinagfw.org/feeds/posts/default" target="_blank" rel="external">http://www.chinagfw.org/feeds/posts/default</a></li>
+<li>阳志平的网志, <a href="http://www.yangzhiping.com/feed" target="_blank" rel="external">http://www.yangzhiping.com/feed</a></li>
+<li>后端技术 by Tim Yang, <a href="http://timyang.net/feed/" target="_blank" rel="external">http://timyang.net/feed/</a></li>
+<li>海德沙龙（HeadSalon）, <a href="http://headsalon.org/feed" target="_blank" rel="external">http://headsalon.org/feed</a></li>
+<li>编程随想的博客, <a href="http://feeds2.feedburner.com/programthink" target="_blank" rel="external">http://feeds2.feedburner.com/programthink</a></li>
+<li>猫窝, <a href="http://blog.wangjunyu.net/feed" target="_blank" rel="external">http://blog.wangjunyu.net/feed</a></li>
+<li>透明思考, <a href="http://gigix.thoughtworkers.org/atom.xml" target="_blank" rel="external">http://gigix.thoughtworkers.org/atom.xml</a></li>
+<li>湾区日报, <a href="http://wanqu.co/feed" target="_blank" rel="external">http://wanqu.co/feed</a></li>
+<li>Dreamsome, <a href="http://dreamsome.org/" target="_blank" rel="external">http://dreamsome.org/</a></li>
+<li>CoolShell.cn, <a href="http://coolshell.cn/feed" target="_blank" rel="external">http://coolshell.cn/feed</a></li>
+<li>北河以北, <a href="http://songchunlin.net/feed/" target="_blank" rel="external">http://songchunlin.net/feed/</a></li>
+<li>乱象，印迹, <a href="http://www.luanxiang.org/blog/feed" target="_blank" rel="external">http://www.luanxiang.org/blog/feed</a></li>
+<li>WooYun知识库, <a href="http://drops.wooyun.org/feed" target="_blank" rel="external">http://drops.wooyun.org/feed</a></li>
+</ul>
+<h3 id="IT-News"><a href="#IT-News" class="headerlink" title="IT News"></a>IT News</h3><ul>
+<li>利器, <a href="http://liqi.io/feed/" target="_blank" rel="external">http://liqi.io/feed/</a></li>
+<li>Information is Beautiful, <a href="http://feeds.feedburner.com/InformationIsBeautiful" target="_blank" rel="external">http://feeds.feedburner.com/InformationIsBeautiful</a></li>
+<li>Solidot, <a href="http://solidot.org.feedsportal.com/c/33236/f/556826/index.rss" target="_blank" rel="external">http://solidot.org.feedsportal.com/c/33236/f/556826/index.rss</a></li>
+<li>爱范儿，<a href="http://www.ifanr.com/feed" target="_blank" rel="external">http://www.ifanr.com/feed</a></li>
+</ul>
+<h3 id="Linux"><a href="#Linux" class="headerlink" title="Linux"></a>Linux</h3><ul>
+<li>IBM developerWorks 中国 : Linux,Open sour, <a href="http://www.ibm.com/developerworks/cn/views/rss/customrssatom.jsp?zone_type=SixZones&amp;zone_by=Linux&amp;zone_by=Open+source&amp;content_type=AllTypes&amp;search_by=&amp;day=1&amp;month=01&amp;year=2008&amp;max_entries=10&amp;feed_by=atom" target="_blank" rel="external">http://www.ibm.com/developerworks/cn/views/rss/customrssatom.jsp?zone_type=SixZones&amp;zone_by=Linux&amp;zone_by=Open+source&amp;content_type=AllTypes&amp;search_by=&amp;day=1&amp;month=01&amp;year=2008&amp;max_entries=10&amp;feed_by=atom</a></li>
+<li>Linux.中国 - 开源社区, <a href="https://linux.cn/rss.xml" target="_blank" rel="external">https://linux.cn/rss.xml</a></li>
+</ul>
+<h3 id="Photography"><a href="#Photography" class="headerlink" title="Photography"></a>Photography</h3><ul>
+<li>The Big Picture, <a href="http://www.boston.com/bigpicture/index.xml" target="_blank" rel="external">http://www.boston.com/bigpicture/index.xml</a></li>
+<li>500px: Editors’ Choice, <a href="http://feed.500px.com/500px-editors" target="_blank" rel="external">http://feed.500px.com/500px-editors</a></li>
+</ul>
+<h3 id="README"><a href="#README" class="headerlink" title="README"></a>README</h3><ul>
+<li>左岸读书, <a href="http://www.zreading.cn/feed" target="_blank" rel="external">http://www.zreading.cn/feed</a></li>
+<li>战隼的学习探索, <a href="http://feed.read.org.cn/" target="_blank" rel="external">http://feed.read.org.cn/</a></li>
+<li>徐贲的BLOG, <a href="http://blog.sina.com.cn/rss/1286402547.xml" target="_blank" rel="external">http://blog.sina.com.cn/rss/1286402547.xml</a></li>
+<li>阮一峰的网络日志，<a href="http://www.ruanyifeng.com/feed.html" target="_blank" rel="external">http://www.ruanyifeng.com/feed.html</a></li>
+<li>月光博客，<a href="http://feed.williamlong.info/" target="_blank" rel="external">http://feed.williamlong.info/</a></li>
+<li>腊八粥, <a href="http://www.labazhou.net/feed/" target="_blank" rel="external">http://www.labazhou.net/feed/</a></li>
+</ul>
+<h3 id="Questions"><a href="#Questions" class="headerlink" title="Questions"></a>Questions</h3><ul>
+<li>知乎每日精选, <a href="http://www.zhihu.com/rss" target="_blank" rel="external">http://www.zhihu.com/rss</a></li>
+<li>知乎日报, <a href="http://feeds.feedburner.com/zhihu-daily" target="_blank" rel="external">http://feeds.feedburner.com/zhihu-daily</a></li>
+<li>Quora, <a href="http://www.quora.com/rss" target="_blank" rel="external">http://www.quora.com/rss</a></li>
+<li>Engineering on Quora, <a href="http://engineering.quora.com/rss" target="_blank" rel="external">http://engineering.quora.com/rss</a></li>
+</ul>
+<h2 id="退订-RSS"><a href="#退订-RSS" class="headerlink" title="退订 RSS"></a>退订 RSS</h2><p>RSS 是获取互联网信息的一大利器，然而如果不能有效地利用 RSS 来订阅资源，反而会成为一种信息负担，因此 RSS 订阅源必须保持不断更新，添加新的、感兴趣的、高质量的订阅源，同时也要删减不再更新的、不再感兴趣的、噪声太多的订阅源。</p>
+<p><a href="http://mindhacks.cn/2008/07/20/learning-habits-part2/" target="_blank" rel="external">退订RSS</a></p>
+<ul>
+<li>RSS Reader是个时间黑洞。就算mark all as read，在有大量feed的情况下，也会无形中消耗掉大量的时间。</li>
+<li>仔细观察一下reader里面的feeds，有哪些是真正有价值的，把那些没价值的或者价值很小乃至于不值得每天被它骚扰的，全都退订掉。</li>
+<li>别担心你会漏掉什么宝贵信息，真正宝贵的信息，在其他来源你也会接触到的。</li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;我个人很喜欢RSS，少数量、高质量的RSS订阅，使人可以在纷繁杂乱的互联网潮流中，及时获取到真正有阅读价值的文章。&lt;br&gt;这里不做RSS的科普，网上已经有很多，善用搜索引擎就能找到。&lt;br&gt;关于RSS阅读器，我使用的是&lt;a href=&quot;https://feedly.com/&quot;&gt;feedly&lt;/a&gt;，客户端使用&lt;a href=&quot;http://reederapp.com&quot;&gt;Reeder&lt;/a&gt;。&lt;br&gt;良好的客户端阅读体验必不可少，但更重要的是RSS的订阅质量。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>日剧：JIN-仁(仁医)</title>
+    <link href="http://seanxp.com/2016/TV-Jin/"/>
+    <id>http://seanxp.com/2016/TV-Jin/</id>
+    <published>2016-04-05T07:05:27.000Z</published>
+    <updated>2017-02-03T08:03:29.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="https://img5.doubanio.com/view/photo/photo/public/p1084123716.jpg" alt="JIN-1"><br>我生君未生，君生我已老。<br>我恨君生迟，君恨我生早。<br>唯留书一封，寸心以相表。<br>若得生同时，誓拟与君好。<br><a id="more"></a></p>
+<h1 id="日剧《仁医》"><a href="#日剧《仁医》" class="headerlink" title="日剧《仁医》"></a>日剧《仁医》</h1><p>在我们看来，一切都是理所当然的。<br>可以想去就去到地球的另一面，<br>任何时候都能传达自己的思念，<br>每天过着平凡而又充实的生活，<br>以及这个会让人忘记白天黑夜的世界。<br>然而，这一切都是先人赐予我们的，<br>是历史中的每个人战斗，挣扎，牺牲所赢得的，<br>更是由无数的生命奇迹编织而成的，<br>所以，我们必须给予后人更加光明的未来，用我们的双手。</p>
+<ul>
+<li><a href="https://movie.douban.com/subject/3892394/" target="_blank" rel="external">豆瓣 - 仁医</a></li>
+<li><a href="https://movie.douban.com/subject/4881202/" target="_blank" rel="external">豆瓣 - 仁医2</a></li>
+<li><a href="https://www.zhihu.com/question/25381157" target="_blank" rel="external">知乎 - 向爱与历史致敬！仁医简评</a></li>
+</ul>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/WzvJnUB7F8I" frameborder="0" allowfullscreen></iframe>
+
+<h1 id="橘咲：给遗忘世界的未知情书"><a href="#橘咲：给遗忘世界的未知情书" class="headerlink" title="橘咲：给遗忘世界的未知情书"></a>橘咲：给遗忘世界的未知情书</h1><pre><code>〇〇大夫：
+○○先生へ
+
+    大夫，您还好吗？
+    先生 お元気でいらっしゃいますでしょうか
+
+    写了奇怪的开头，非常抱歉。
+    おかしな书き出しでございますこと 深くお诧び申し上げます
+
+    其实，在感染病中保住一命之后，无论如何也想不起大夫您的名字。
+    実は 感染症から一命を取り留めたあと どうしても先生の名が思い出せず
+
+    我询问了其他的大夫们，大家却说仁友堂并没有那样的大夫。
+    先生方に确かめたところ 仁友堂には そのような先生などおいでにならず
+
+    而这里是我们创建起来的诊所。
+    ここは わたくし达がおこした治疗所だと言われました
+
+    我虽觉得事有蹊跷，但也不由自主的想。
+    何かがおかしい そう思いながらも わたくしもまた 次第にそのように思うようになりました
+
+    那是在做梦吧。
+    梦でも见ていたのであろうと
+
+
+    然而，有一天，我找到了一枚从未见过的奇怪的铜质圆片。
+    なれど ある日のこと 见たこともない 奇妙な铜の丸い板を见つけたのでございます
+
+    看着那圆片，我隐约回想了起来。
+    その板を见ているうちに わたくしは おぼろげに思い出しました
+
+    这里，曾有一位被称作大夫的人。
+    ここには 先生と呼ばれたお方がいたことを
+
+    那位大人，喜欢吃油炸豆腐，容易流泪。
+    そのお方は 扬げだし豆腐がお好きであったこと 涙もろいお方であったこと
+
+    拥有神一般的妙手，却绝不是神。
+    神のごとき手を持ち なれど 决して神などではなく
+
+    他会迷茫，会受伤，会心碎，一心扑在治疗上。
+    迷い伤つき お心を砕かれ ひたすら悬命に治疗に当たられる
+
+    是位拥有仁心的人。
+    仁をお持ちの人であったこと
+
+    我记起了，因为他。
+    わたくしはそのお方に
+
+    让我曾看见了这世上最美丽的夕阳。
+    この世で 一番美しい夕日をいただきましたことを 思い出しました
+
+    记起了，我对这位连名字和样貌都不记得了的人，怀有思慕之情。
+    もう名も お颜も 思い出せぬそのお方に 恋をしておりましたことを
+
+    可是，这样下去的话。一定会，终有一天，我会忘记一切。
+    なれど きっとこのままでは わたくしは いつか全てを忘れてしまう
+
+    连这流泪的理由也一并遗忘。
+    この涙のわけまでも失ってしまう
+
+
+    不知为何我耳边残留着修正力这个词。
+    なぜか耳に残っている 修正力という言叶
+
+    让我觉得这段回忆会消失。
+    わたくしは この思い出を无きものとされてしまう気がいたしました
+
+    既然这样，我不由自主地就拿起了笔。
+    ならば と 笔をとった次第にございます
+
+    我能与此抗争的方法只有一个。就是把这回忆记录下来。
+    わたくしがこの出来事にあらがうすべはひとつ この思いを记すことでございます
+
+    〇〇大夫
+    ○○先生
+
+    请容许我在此重新记下。
+    改めて ここに书き留めさせていただきます
+
+    橘咲，一直都爱慕大夫。
+    橘咲は 先生を お慕い申しておりました
+
+                                                                        橘咲
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;https://img5.doubanio.com/view/photo/photo/public/p1084123716.jpg&quot; alt=&quot;JIN-1&quot;&gt;&lt;br&gt;我生君未生，君生我已老。&lt;br&gt;我恨君生迟，君恨我生早。&lt;br&gt;唯留书一封，寸心以相表。&lt;br&gt;若得生同时，誓拟与君好。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="TV" scheme="http://seanxp.com/categories/TV/"/>
+    
+    
+      <category term="Review" scheme="http://seanxp.com/tags/Review/"/>
+    
+      <category term="TV" scheme="http://seanxp.com/tags/TV/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>猴子王国 Monkey Kingdom</title>
+    <link href="http://seanxp.com/2015/monkey-kingdom/"/>
+    <id>http://seanxp.com/2015/monkey-kingdom/</id>
+    <published>2015-09-23T04:55:33.000Z</published>
+    <updated>2017-02-03T08:09:23.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="https://images-na.ssl-images-amazon.com/images/M/MV5BMzIxNDc1MDg0MF5BMl5BanBnXkFtZTgwNTI3ODE4MzE@._V1_SY1000_SX676_AL_.jpg" alt="Monkey Kingdom"><br><a id="more"></a></p>
+<ul>
+<li><a href="http://nature.disney.com/monkey-kingdom" target="_blank" rel="external">Disney - Monkey Kingdom</a></li>
+<li><a href="https://movie.douban.com/subject/25865526/" target="_blank" rel="external">Douban - Monkey Kingdom</a></li>
+</ul>
+<p>超赞的自然纪录片！好莱坞大片既视感、时而大气时而欢快的配乐、趣味的旁白配音，自由广阔的视角，这部纪录片样样出色。<br>猴子社会的等级制度、权利的争夺与守护、贵族阶级与平民阶级在遭遇社会重大变故的反应，共同谱写出一篇不收待见的下层女青年凭借远大眼光扶持平民屌丝青年帮助其凭借社会变故翻身做贵族的故事。<br>天地不仁，以万物为刍狗；圣人不仁，以百姓为刍狗。<br>这种无为而治的拍摄手法完完全全地还原了猴子社会，亦是人类社会的缩影。<br>有能力，才有被利用的价值，才会在新的环境和趋势来临之际，把握机会，改变阶级构成。<br>纵观人类社会历史，莫不是乱世出英雄，末代立皇帝。<br>我等平民阶级，唯有“藏器于身，待时而动”。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;https://images-na.ssl-images-amazon.com/images/M/MV5BMzIxNDc1MDg0MF5BMl5BanBnXkFtZTgwNTI3ODE4MzE@._V1_SY1000_SX676_AL_.jpg&quot; alt=&quot;Monkey Kingdom&quot;&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Documentary" scheme="http://seanxp.com/categories/Documentary/"/>
+    
+    
+      <category term="Review" scheme="http://seanxp.com/tags/Review/"/>
+    
+      <category term="Social" scheme="http://seanxp.com/tags/Social/"/>
+    
+      <category term="Documentary" scheme="http://seanxp.com/tags/Documentary/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>《醉步男》</title>
+    <link href="http://seanxp.com/2015/drunk-man/"/>
+    <id>http://seanxp.com/2015/drunk-man/</id>
+    <published>2015-09-20T04:47:47.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>“为什么人可以安定地生活？”<br>因为波函数可以坍缩。<br>“折磨我的是什么？”<br>是无法抗拒的命运。<br>“为什么人不能舍弃希望？”<br>因为波函数可以发散。<br>“你是谁？”<br>我是手儿奈。</p>
+<p>——《醉步男》<br><a id="more"></a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;“为什么人可以安定地生活？”&lt;br&gt;因为波函数可以坍缩。&lt;br&gt;“折磨我的是什么？”&lt;br&gt;是无法抗拒的命运。&lt;br&gt;“为什么人不能舍弃希望？”&lt;br&gt;因为波函数可以发散。&lt;br&gt;“你是谁？”&lt;br&gt;我是手儿奈。&lt;/p&gt;
+&lt;p&gt;——《醉步男》&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Poetry" scheme="http://seanxp.com/tags/Poetry/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>The Pianist</title>
+    <link href="http://seanxp.com/2015/movie-the-pianist/"/>
+    <id>http://seanxp.com/2015/movie-the-pianist/</id>
+    <published>2015-09-04T04:49:03.000Z</published>
+    <updated>2017-02-03T08:12:21.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="https://img3.doubanio.com/view/photo/photo/public/p837891375.jpg" alt="The-Pianist.jpg"><br><a href="https://movie.douban.com/subject/1296736/" target="_blank" rel="external">《The Pianist》</a>, 和《Schindler’s List》一样的传记题材电影，不一样的人物视角。二战题材的电影看过不少，在那个年代，无论发生什么都不会再令我感到震惊，因为那本来就是一个荒谬而残酷的时代。<br><a id="more"></a></p>
+<p>主人公Szpilman是工作在波兰电台的犹太钢琴师。在被迫害期间，因为得到一系列的帮助，最终坚强地存活下来。讽刺的是，帮助他的人，大部分却各有各自的想法。</p>
+<ul>
+<li>第一个帮助Szpilman的人，是犹太人区的犹太人Jehuda。当Szpilman前来请求Szpilman帮助时，Szpilman以一种高高在上的角度对其嘲讽，最后以宵禁为名拒绝了Szpilman。第二次见面，借其朋友Majorek的职务便利，帮助了Szpilman。最后的下场是在纳粹清空犹太人区时全家被杀；</li>
+<li>第二个是协助德国纳粹士兵管理犹太人的犹太警察Yitzchak，为了存活而压迫同胞，最后施加援手不过为了利（”It costs”）与名（”They said you’re an important man”）；</li>
+<li>第三个是餐厅老板，最后死在纳粹人枪下，连他唯一的愿望（希望死的幸运，越快越好”The quicker, the better”）都没有实现，在临死前还要忍受纳粹士兵换子弹的煎熬；</li>
+<li>第四个是私下组织犹太人反抗的Majorek，最后死在反抗纳粹的战斗中。</li>
+<li>第五个是一批热心的波兰人士，他们帮助藏匿犹太人并提供食物与住处，最后有的被捕，有的逃亡，有的无奈离开波兰。但其中有一个波兰人Antek Szalas，表面是帮助犹太人，为犹太人而募捐，但私下卷着募捐的钱跑了。非常讽刺的一个镜头，他对Szpilman笑着说自己很久没来为Szpilman提供食物的原因是自己手头没钱买食物，但自己笑的时候还露着大金牙。</li>
+<li>第六个是德国纳粹上校Wilm Hosenfeld，他因为喜爱音乐而偷偷帮助身为钢琴师的Szpilman，尽管自己作为德国纳粹上校具有很强的战争立场。可惜Wilm最后却在德国战败后死在俄国战俘营中。可怜Wilm即使在战场办公室的桌子上也不忘放着家人的照片，最后却没能与家人团聚。</li>
+</ul>
+<p><strong>一个Schindler，一个Wilm，即便是黑暗，也总有些许耀眼的光芒，人形的光辉！</strong></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;https://img3.doubanio.com/view/photo/photo/public/p837891375.jpg&quot; alt=&quot;The-Pianist.jpg&quot;&gt;&lt;br&gt;&lt;a href=&quot;https://movie.douban.com/subject/1296736/&quot;&gt;《The Pianist》&lt;/a&gt;, 和《Schindler’s List》一样的传记题材电影，不一样的人物视角。二战题材的电影看过不少，在那个年代，无论发生什么都不会再令我感到震惊，因为那本来就是一个荒谬而残酷的时代。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Movie" scheme="http://seanxp.com/categories/Movie/"/>
+    
+    
+      <category term="Review" scheme="http://seanxp.com/tags/Review/"/>
+    
+      <category term="Documentary" scheme="http://seanxp.com/tags/Documentary/"/>
+    
+      <category term="War" scheme="http://seanxp.com/tags/War/"/>
+    
+      <category term="Life" scheme="http://seanxp.com/tags/Life/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>浅谈工作的意义</title>
+    <link href="http://seanxp.com/2015/why-do-people-work/"/>
+    <id>http://seanxp.com/2015/why-do-people-work/</id>
+    <published>2015-08-10T04:43:10.000Z</published>
+    <updated>2017-02-03T08:11:23.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>之前一直在思考工作的意义：为什么工作？为了什么工作？工作为了什么？<br>看到这篇文章（<a href="http://www.zreading.cn/archives/4909.html" target="_blank" rel="external">我们工作为了什么 | 左岸读书</a>）的评语，醍醐灌顶，解决了心中长存的疑惑。</p>
+<blockquote>
+<p>左岸记：工作是为了让生活更自由。贫穷剥夺人的自由，迫使人为金钱而工作，因为钱意味着生存。金钱的最大好处是使人摆脱贫穷的逼迫，在金钱面前获得自由。也就是说，不必为金钱而工作了，可以做自己真正喜欢做的事情了。 可是，倘若一个人只喜欢钱，有了钱仍然只为金钱而工作，怎么样呢？他更不自由了，在金钱面前他永无解放之日了。物质上的贫民，钱越少，越受金钱的奴役。精神上的贫民，钱越多，越受金钱的奴役。</p>
+</blockquote>
+<a id="more"></a>
+<p>工作是一种生存手段，使我们不会因为贫穷的限制而失去生活的自由。</p>
+<p>工作是生活的一部分，我们创造价值，并利用他人创造的价值来生活。工作的量度应该是“价值”，有价值的工作带来好的利益（经济利益、社会效益）。但是，如今有太多的工作，因为挣钱的快慢、多少、难易，被人们功利性的分成三六九等。有价值的工作不一定好挣钱，人们选择工作的方式也往往局限在工作结束后的回报，而忽略工作自身。有俗语：“世上有三苦，撑船、打铁、卖豆腐！”，经常听过大人教育子女，说倘若不好好学习以后就要做这样吃苦的工作。不禁让人想问：“那请问什么是不吃苦的工作？” 难道像白领一样坐在写字楼里工作，就不吃苦了？</p>
+<p>如今有太多的人，本末倒置，为了工作，为了挣钱，而选择失去生活的自由。</p>
+<p>不要因为走的太远，而忘记当初为何出发。</p>
+<p>勿忘初心！</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;之前一直在思考工作的意义：为什么工作？为了什么工作？工作为了什么？&lt;br&gt;看到这篇文章（&lt;a href=&quot;http://www.zreading.cn/archives/4909.html&quot;&gt;我们工作为了什么 | 左岸读书&lt;/a&gt;）的评语，醍醐灌顶，解决了心中长存的疑惑。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;左岸记：工作是为了让生活更自由。贫穷剥夺人的自由，迫使人为金钱而工作，因为钱意味着生存。金钱的最大好处是使人摆脱贫穷的逼迫，在金钱面前获得自由。也就是说，不必为金钱而工作了，可以做自己真正喜欢做的事情了。 可是，倘若一个人只喜欢钱，有了钱仍然只为金钱而工作，怎么样呢？他更不自由了，在金钱面前他永无解放之日了。物质上的贫民，钱越少，越受金钱的奴役。精神上的贫民，钱越多，越受金钱的奴役。&lt;/p&gt;
+&lt;/blockquote&gt;
+    
+    </summary>
+    
+      <category term="Analysis" scheme="http://seanxp.com/categories/Analysis/"/>
+    
+    
+      <category term="Social" scheme="http://seanxp.com/tags/Social/"/>
+    
+      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
+    
+      <category term="Life" scheme="http://seanxp.com/tags/Life/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>大学生：“学”与“做”的迷思</title>
+    <link href="http://seanxp.com/2015/doing-and-learning/"/>
+    <id>http://seanxp.com/2015/doing-and-learning/</id>
+    <published>2015-05-03T04:35:31.000Z</published>
+    <updated>2017-02-03T08:11:49.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文引用地址：<a href="http://blog.sciencenet.cn/blog-111635-485086.html" target="_blank" rel="external">http://blog.sciencenet.cn/blog-111635-485086.html</a>  此文来自科学网吕喆博客，转载请注明出处。</p>
+<p>事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。<br><a id="more"></a></p>
+<p>从我在大学学习和工作的20多年的亲身经历以及所见所闻来看，不少的学生的学习是沿袭中学的套路，按部就班地听课、看书、做习题、复习备考，最后当然是拿成绩毕业。大学生们毕业后的去向可能因人而异，有的会直接参加工作，有的会选择在国内或者去国外读研究生，无论哪种学生，都有人会把两句话经常挂在嘴边，而这却是两句让大学的老师们听到感觉很不受用的话：“感觉大学没学到啥东西”——说这话的，很多紧接着的下文是“因此，来读研究生”了；也可能是另一句“感觉大学学过的东西没啥用；现在要用的东西都没学过。。。。。。”</p>
+<p>其实这两句话我个人从来没说过，N多年前作为一个学生的时候没有，以后作为一个大学教师更不会这样说，听到学生这样说，倘若有空有条件的话，我还会规劝其几句。<br><strong>事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。</strong><br>当然，如果毕业后要指望这些“知识”全部无一遗漏地在未来某一人承担的某项或某几项具体工作中都得到切实的应用，大概是更加不可思议的，现实情况是如果专业对口儿，会有很少一部分知识，会在实际工作中得到直接的运用。若要指望工作以后自己当下要干的活儿不是由眼前的师傅来教，而是当年坐在教室里就能跟着老师学到，其实也是一种不大靠谱的设想，<strong>大学老师能教给你的只能是基础知识和基本方法，至于它们的具体的实践运用，只能在工作实践环节去学习和掌握</strong>。</p>
+<p><strong>本来，大学阶段主要是“学”的过程，而攻读研究生和参加工作以后主要面临的主要任务是“做”，如果不能处理好“学”与“做”关系，不能建立一个的合理过渡途径，就会出现上述问题。</strong></p>
+<p><strong>绝大多数的大学生都是习惯“先学”而“后做”、“学会”了“再做”的，从小到大“做题”就是这么过来的，可以说是“从来如此”，但“从来如此便对么？”</strong>未必！不可否认，在未“学”之时，连最起码的知识和技能都没有，当然是没办法“做”的。但是否一定要等到全部学完、学会之后再做，倒是个值得商榷的问题。<br><strong>请大家注意，无论大中小学，作业和习题几乎都是在每章每节课内容后面的，学生也是学了之后马上就做的，这就是说，知识学了之后要马上用，在用的过程中逐渐加深印象并掌握好。</strong>正常人不会把习题一股脑地堆积到期末再做，如果那样，时间肯定不够用，而先期学习的知识的遗忘更是个不可忽视的大问题，这样的学习效果和考试成绩恐怕会很不好。<br>所以我说，<strong>不能等到“学完”之后“再做”，作业习题如此，实践环节的东西亦然。</strong></p>
+<p><strong>我不主张“学完再做”，我建议大家“边学边做”，其实我更希望“在做中学”。</strong><br>如果在你自知没有完全学会一方面的知识的情况下开始做事，若有幸做成了，当然马上可以增加信心，会在这个过程中看到自己学习到的知识的用处和价值；即使因为能力不足或者火候不到而做不成，受到的打击也比较有限，因为此时你毕竟还有很多知识和技能没能“全面掌握”，还有提升的空间和希望，挫折感当然不会比你自以为“学完”、“学会”了知识之后更大，这些都是“边学边做”的好处。<br>相反，<strong>如果靠所掌握的阶段性知识不能解决问题，你就会主动地去进一步学习更多、更大范围的知识和技能，这便是“在做中学”的要旨。</strong>如果上升到哲学的高度（而不是下降到“喆学”的低度）套用一句术语，大概就是“知行合一”了。</p>
+<p><strong>“边学边做”是在没有完整地掌握一个大的知识体系的情况下开始实践的，因此容易进入比较功利的状态，对知识的追求浅尝辄止、够用就行，进而可能缺乏耐心去掌握完整的知识体系。</strong><br>如果一个人在运用眼下掌握的并不完整的知识就成功地解决了某个问题的时候，他可能因此而赢得信心并兴奋不已，倘若兴奋过了头儿，甚至可能落入某种陷阱，不再重视后续知识的学习和深入理解，以为凭借已经学会的这些知识就可以横扫天下一切相关问题（有些传说中的“民科”，可能就是这样炼成的）。</p>
+<p><strong>“在做中学”并不是把学习的过程一味地推后，而是强调不间断学习和提高。</strong><br><strong>古话讲“书到用时方恨少”，意思也是说在应用环节中方显知识的不足或者能力的不够，会让人产生学习的动力和“恶补”知识的冲动。</strong><br>但这可绝对不是让大家事前不学习，非要等到遇到问题时才“临难抱佛脚”地学，然后再“现炒现卖”地用。如果平时没有足够的知识储备，可能做的机会都不会有，即使给了你做的机会，也可能会因为缺乏必要知识和认识理解能力而感觉无从下手。相反，只有平时已经有了较深厚的知识积累，并具有良好的学习习惯和迅速运用所学知识的意识，才会更善于在做的过程中学习，并在这种学习中不断进步。</p>
+<p><strong>综上所述，关于知识及其运用，我主张“边学边用”，尽量用自己所学的知识做事情、解决问题，也希望大家能够在做的过程中不断保持学习状态和心态。</strong><br>当然，也可能有很多学生都认为没机会“做”，其实“做”也分大小，大的研究课题未必人人有机缘遇到，小的问题倒总还是有的，关键看你自己平时是否留心它、是不是会去努力钻研之。</p>
+<p>本文引用地址：<a href="http://blog.sciencenet.cn/blog-111635-485086.html" target="_blank" rel="external">http://blog.sciencenet.cn/blog-111635-485086.html</a>  此文来自科学网吕喆博客，转载请注明出处。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文引用地址：&lt;a href=&quot;http://blog.sciencenet.cn/blog-111635-485086.html&quot;&gt;http://blog.sciencenet.cn/blog-111635-485086.html&lt;/a&gt;  此文来自科学网吕喆博客，转载请注明出处。&lt;/p&gt;
+&lt;p&gt;事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
+    
+      <category term="Education" scheme="http://seanxp.com/tags/Education/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>为什么越读书越穷？</title>
+    <link href="http://seanxp.com/2015/more-reading-more-poor/"/>
+    <id>http://seanxp.com/2015/more-reading-more-poor/</id>
+    <published>2015-04-13T04:26:21.000Z</published>
+    <updated>2017-02-03T08:10:50.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文引用地址：<a href="http://blog.sciencenet.cn/blog-278905-874146.html" target="_blank" rel="external">http://blog.sciencenet.cn/blog-278905-874146.html</a><br>此文来自科学网鲍海飞博客</p>
+<p>为什么越读书越穷？<br>鲍海飞 2015-3-13<br><a id="more"></a></p>
+<p>那天看了某位先生写的博文，大意是为什么越读书而越穷？看了一点，心中有一丝悲凉，颇有同感，因为自己大半辈子也是个书呆子，经常阅读着文献，查资料，看着书，从事着所谓的研究，过着并不富裕的生活，而时刻受到来自社会各种莫名有形无形的竞争和压力。</p>
+<p>之所以发出这样的感慨，大体是因为一直在从事着科研，而眼前的科研道路却越走越艰难，科研本身又带来不了多少金钱。同时，越发感觉年龄也越来越大了，而自己依然一事无成，没有成就那一亩三分地。更令人生畏的是，往周围看，周围的同龄人个个出类拔萃，或都小有所成；再往前看，眼前更是一片漆黑，前方似无路可进，往哪里去又无处可寻的尴尬境地。似乎就成了越读书越穷的纠结现象和问题了。此外，读书虽然似乎让人打开了眼界，似乎有更多的道路可供选择，所谓‘条条大路通罗马’，但为什么书读多了，反而止步不前又更加畏手畏脚了？或许只因美好的时光已经一去不复返，整日的低眉垂发于书本之中，无力改行。</p>
+<p><strong>如果说人的一生前四分之一时间，或者说青少年时期，包括大学期间，能够读书学习是父母所给予的机会</strong>，那么如何看待和对待余下人生时间的‘读书学习’问题呢？进一步说，前四分之一时间，是父母养育着我们，余下的时间是我们该如何生活呢？其实，这就是摆在每个人面前的问题，如何生存的问题。</p>
+<p><strong>读书究竟是为了什么？这是一个难以用一句两句话来说描述的。除了娱乐消遣的阅读和学习，狭隘地说，读书学习的首要目的是要学习前人的知识和经验，为自己的将来获得一技之长，即获得生存之道。广义地说，读书学习是一个人的兴趣和志向，通过学习获得自然和社会科学的知识储备，得到前人的观点，获得自己的领悟，从而获得探索的动力，走向人生追求之路。</strong></p>
+<p>遗憾地是，我们很多人，包括我自己，因为对社会的接触不多，也不太懂得人情世故，并不知道这个道理，更不懂得什么人生的机遇和规划。<br><strong>因为一直在读书，并认为，只有读书才是唯一出路，而又不知道如何用书，这不免就悲哀了。</strong>当一个坎跟着一个坎的到来时，车到山前了，我们发现没有路了。</p>
+<p><strong>古人就有‘学以致用’‘穷则思变’，这是告诉人们不要死读书，读死书，而是要活学活用。</strong>这个‘致用’就是要人能够将所学到的东西用出来，发挥你个人的长处，而不是死抠书本。很多时候，执泥于书本，让人无法抬头，而跳不出、甚至不敢跳出这个圈子。</p>
+<p>从某种意义上说，读书是一个手段，读书是一个目的。读书能够增长智慧和间接经验，在学习的过程中，逐渐形成自己的人生观、世界观。如果一个人一辈子沉浸于他人的书堆中，那便真是个彻头彻尾的书呆子了。</p>
+<p><strong>世事练达皆学问。</strong><br>读书学习只是人们生活的一个部分，是一个基本的‘入道’过程。书能够让你尽快地获得间接经验和智慧，从而给出自己的行动和判断。郑人买履的故事：“宁信度，莫信自”虽然是个笑话，但何尝又不是个悲剧。为什么不能伸出自己的脚，去亲自试一试，所有的问题不就都解决了，结果，就是不敢伸出自己的脚，迈出自己的腿。这就是一个书生没有敢于放下书，没有敢跳出书本走向外面的世界的原因。“纸上得来终觉浅，绝知此事要躬行”，这才是一个读书人应该做得事。因此，对于从小就读书明白事理的人更应该牢记：但宁信书，莫若无书。换一句更浅显的话来说就是，不能只顾低头拉车，也要不时地抬头看路。这个抬头就是要你看准方向，就是要你跳出执迷的圈子。</p>
+<p><strong>对于一些人来说，读书之弊在于，不但没有从读书中获得应有的智慧和启迪，反而倒是造就了狭隘的心胸和眼界。读书之弊端还在于，读书不但没有成为快乐的源泉和探索的动力，反而到成了手脚和头脑的束缚。</strong>读书之困在于没有找到自己的卖点和市场，没有找到自己的长处或者是潜力。</p>
+<p><strong>人的一生，阅历是他最大的本钱。人们在讲阅历二字，其中的阅可以理解为读书，求知识的过程，而历更是要一个人放下书本到社会中去经历和历练，这样才能成长。</strong>因此，读书是人前行中的一部分，社会是一本耐人寻味的书，所谓且行且读。</p>
+<p>读书是一个人成长的过程，能否成才则是另一个问题。有很多人通过走科研这条路，成功了，有很多人‘学而优则仕’了。但对你未必就合适。因此，‘学而优则仕’并不是说学习好了，就天上掉馅饼，什么好事都来到你的头上。而是你自己还要善于抓住机遇，通过读书学习科研，然后找到了适合自己发展的途径，从而才有了更广阔的天空。比如，有的人，利用专业去搞推销了，而不是一直从事着实验室里的专业研究。当然，如果有条件、环境、和待遇，一心一意从事研究，那何尝不是人生的一件快事。</p>
+<p>读书是为了找到人生的位置和方向。没有从书中得到独立的思想，没有从环境中汲取有用的样板和精神力量，是人生之憾事。</p>
+<p>读书是个寻求答案，解决疑惑的过程。读书是让人有个分辨和选择的过程。书里装着善良与险恶，书里装着智慧与阴谋。</p>
+<p>读书可以作为消遣，摆脱孤独和无助；读书可以是个人性情、品性的追求。读书可以塑造一个人的气质。读书的过程能获得力量，并有感悟、感叹之趣。</p>
+<p>书生为什么不敢放下书？一个原因是感觉很多东西动没有学到手，熟不知，这世界上何止三百六十行，各行各道穷出不尽，又何止一生所能成就？一个原因是沉湎与书中的乐趣，而无法自拔。一个原因是，不知道读书的最终目标是什么。<br><strong>在读书的过程中，迷失了自己。认为读书就是生活，那是大错而特错。高尚地说，读书是为了寻求自己前进的方向，追求自己的理想。狭隘地说，读书是为了寻求生存之路的一个便捷途径。</strong>还有一个原因，被书中所描述的世界所震慑，不敢面对现实，走向社会。有时候，读书成为逃离现实的一种做法。天天捧着书，而让书阻挡了你前行的道路，阻挡了登高瞭望，这是一种无法自拔。有时候，是思虑过多，瞻前顾后，影响了我们的判读和选择。</p>
+<p><strong>当读书学习到一定程度和阶段，就应该跳出读书的圈子，合上书，甚至抛弃书，然后要勇敢地走向一条独立自主、自力更生的道路。</strong>因为，人生有很多的道路供你选择！你才可以从容地写下你自己的书。</p>
+<p>物质的诱惑，精神的困惑！名利之途，人生该如何面对？</p>
+<p><strong>读书之穷，是前进道路之穷，是前进方向之穷，实际是没有没有学到书中的真谛，乃是思想和眼界之穷。</strong></p>
+<p>写到这里，这个‘穷’字让人生出无限感慨。忽然想到了近些时日，民众广泛讨论的《穹顶之下》，发现这两个汉字，‘穷’与‘穹’，发音相同，字型又何其相似。盖人在屋檐下，力不得伸，而只能弓腰弯背了。‘穷’出了头，力就发出来了，顶也就破了。</p>
+<p>该结束了，又想起了毛主席的话：放下包袱，开动机器。是啊，作为一个读过很多书的人，更应该有勇气面对现实。那么你就：放下书本，开动思想。看看我们能够走多远，或许从此，你就走进了另一片广阔的天地。</p>
+<p>勇敢的心！</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文引用地址：&lt;a href=&quot;http://blog.sciencenet.cn/blog-278905-874146.html&quot;&gt;http://blog.sciencenet.cn/blog-278905-874146.html&lt;/a&gt;&lt;br&gt;此文来自科学网鲍海飞博客&lt;/p&gt;
+&lt;p&gt;为什么越读书越穷？&lt;br&gt;鲍海飞 2015-3-13&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
+    
+      <category term="Reading" scheme="http://seanxp.com/tags/Reading/"/>
+    
+      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
+    
+      <category term="Book" scheme="http://seanxp.com/tags/Book/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>叔本华：读书与书籍</title>
+    <link href="http://seanxp.com/2015/on-books-and-reading/"/>
+    <id>http://seanxp.com/2015/on-books-and-reading/</id>
+    <published>2015-03-25T04:08:53.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>叔本华（1788-1860），德国著名哲学家。<br>无论悲观与否，叔本华到底是个清醒的思想者，他的文章往往如解毒剂般，一针见血入木三分，如《读书与书籍》，“我们的‘精神食粮’如太多，也是无益而有害。”谁说不是呢？“如果我们想要知道他在路上看见些什么，则必须用我们自己的眼睛。”读书如果没有自己的眼睛，那还叫读吗？所以，尽管这些话读来未免“令人兴起泫然欲泣的感觉”，但良言逆耳，终究是值得我们铭记于心的。</p>
+<p>摘自 《叔本华散文集》<br>英文文章地址：<a href="http://www.berfrois.com/2013/02/on-books-and-reading-schopenhauer/" target="_blank" rel="external">http://www.berfrois.com/2013/02/on-books-and-reading-schopenhauer/</a><br><a id="more"></a></p>
+<h2 id="（一）"><a href="#（一）" class="headerlink" title="（一）"></a>（一）</h2><p>愚昧无知若伴随着富豪巨贾，更加贬低了其人的身份。<br>穷人忙于操作，无暇读书无暇思想，无知是不足为怪的。富人则不然，我们常见其中的无知者，恣情纵欲，醉生梦死，类似禽兽。他们本可做极有价值的事情，可惜不能善用其财富和闲暇。</p>
+<h2 id="（二）"><a href="#（二）" class="headerlink" title="（二）"></a>（二）</h2><blockquote>
+<p>我们读书时，是别人在代替我们思想，我们只不过重复他的思想活动的过程而已，犹如儿童启蒙习字时，用笔按照教师以铅笔所写的笔划依样划葫芦一般。<br>我们的思想活动在读书时被免除了一大部分。因此，我们暂不自行思索而拿书来读时，会觉很轻松，然则在读书时，我们的头脑实际上成为别人思想的运动场了。所以，读书愈多，或整天沉浸于读书的人，虽然可借以休养精神，但他的思想能力必将渐次丧失，此犹如时常骑马的人步行能力必定较差，道理相同。</p>
+</blockquote>
+<p>有许多学者就是这样，因读书太多而变得愚蠢。经常读书，有一点闲空就看书，这种做法比常做手工更会使精神麻痹，因为在做手工时还可以沉缅于自己的思想中。我们知道，一条弹簧如久受外物的压迫，会失去弹性，我们的精神也是一样，如常受别人的思想的压力，也会失去其弹性。又如，食物虽能滋养身体，但若吃得过多，则而伤胃乃至全身。我们的“精神食粮”若太多，也是无益而有害。读书越多，留存在脑中的东西越少，两者适成反比，读书多，他的脑海就象一块密密麻麻、重重叠叠、涂抹再涂抹的黑板一样。读书而不加以思考，决不会有心得，即使稍有印象，也浅薄而不生根，大抵在不久后又会淡忘丧失。<br>以人的身体而论，我们所吃的东西只有五十分之一能被吸收，其余的东西，则因呼吸，蒸发等等作用而消耗掉。精神方面的营养亦同。</p>
+<p>况且被记录在纸上的思想，不过是像在沙上行走者的足迹而已，我们也许能看到他所走过的路径；<br>如果我们想要知道他在路上看见些什么，则必须用我们自己的眼睛。</p>
+<h2 id="（三）"><a href="#（三）" class="headerlink" title="（三）"></a>（三）</h2><p>作家们各有其所专擅，例如雄辩、豪放、简洁、优雅、轻快、诙谐、精辟、纯朴、文采绚丽、表现大胆等等，然而，这些特点，并不是读他们的作品就可学得来的。</p>
+<blockquote>
+<p>如果我们自己天生就有着这些优点，也许可因读书而受到启发，发现自己的天赋。看别人的榜样而予以妥善的应用，然后我们才能也有类似的优点。这样的读书可教导我们如何发挥自己的天赋，也可借以培养写作能力，但必须以自己有这些禀赋为先决条件。</p>
+</blockquote>
+<p>否则，我们读书只能学得陈词滥调，别无利益，充其量只不过是个浅薄的模仿者而已。</p>
+<h2 id="（四）"><a href="#（四）" class="headerlink" title="（四）"></a>（四）</h2><p>如同地层依次保存着古代的生物一样，图书馆的书架上也保存着历代的各种古书。后者和前者一样，在当时也许曾洛阳纸贵，传诵一时，而现已犹如化石，了无生气，只有那些“文学的”考古学家在鉴赏而已。</p>
+<h2 id="（五）"><a href="#（五）" class="headerlink" title="（五）"></a>（五）</h2><p>据希罗多德（Herodotus 希腊史家）说，薛西斯（Xerxes 波斯国王）眼看着自己的百万雄师，想到百年之后竟没有一个人能幸免黄土一抔的厄运，感慨之余，不禁泫然欲泣。<br>我们再联想起书局出版社那么厚的图书目录中，如果也预想到十年之后，这许多书籍将没有一本还为人所阅读时，岂不也要令人兴起泫然欲泣的感觉？</p>
+<h2 id="（六）"><a href="#（六）" class="headerlink" title="（六）"></a>（六）</h2><blockquote>
+<p>文学的情形和人生毫无不同，不论任何角落，都可看到无数卑贱的人，像苍蝇似的充斥各处，为害社会。在文学中，也有无数的坏书，像蓬勃滋生的野草，伤害五谷，使它们枯死。他们原是为贪图金钱，营求官职而写作，却使读者浪费时间、金钱和精神，使人们不能读好书，做高尚的事情。</p>
+</blockquote>
+<p>因此，它们不但无益，而且为害甚大。大抵来说，目前十分之九的书籍是专以骗钱为目的的。为了这种目的，作者、评论家和出版商，不惜同流合污，朋比为奸。<br>许多文人，非常可恶又狡猾，他们不愿他人企求高尚的趣味和真正的修养，而集中笔触很巧妙地引诱人来读时髦的新书，以期在交际场中有谈话的资料。<br>如斯宾德连、布维及尤金·舒等人都很能投机，而名噪一时。这种为赚取稿费的作品，无时无地都存在着，并且数量很多。这些书的读者真是可怜极了，他们以为读那些平庸作家的新作品是他们的义务，因此而不读古今中外的少数杰出作家的名着，仅仅知道他们的名姓而已——</p>
+<blockquote>
+<p>尤其那些每日出版的通俗刊物更是狡猾，能使人浪费宝贵的时光，以致无暇读真正有益于修养的作品。<br>因此，我们读书之前应谨记<strong>“决不烂读”</strong>的原则，不烂读有方法可循，就是不论何时凡为大多数读者所欢迎的书，切勿贸然拿来读。</p>
+</blockquote>
+<p>例如正享盛名，或者在一年中发行了数版的书籍都是，不管它属于政治或宗教性还是小说或诗歌。你要知道，凡为愚者所写作的人是常会受大众欢迎的。不如把宝贵的时间专读伟人的已有定评的名着，只有这些书才是开卷有益的。<br>不读坏书，没有人会责难你，好书读得多，也不会引起非议。坏书有如毒药，足以伤害心神——因为一般人通常只读新出版的书，而无暇阅读前贤的睿智作品，所以连作者也仅停滞在流行思想的小范围中，我们的时代就这样在自己所设的泥泞中越陷越深了。</p>
+<h1 id="（七）"><a href="#（七）" class="headerlink" title="（七）"></a>（七）</h1><p>有许多书，专门介绍或评论古代的大思想家，一般人喜欢读这些书，却不读那些思想家的原著。这是因为他们只顾赶时髦，其余的一概不理会；又因为”物以类聚“的道理，他们觉得现今庸人的浅薄无聊的话，比大人物的思想更容易理解，是以古代名作难以入目。<br>我很幸运，在童年时就读到了施勒格尔的美妙警句，以后也常奉为圭臬。</p>
+<blockquote>
+<p>“你要常读古书，读古人的原著；今人论述他们的话，没有多大意义。”</p>
+</blockquote>
+<p>平凡的人，好像都是一个模型铸成的，太类似了！他们在同时期所发生的思想几乎完全一样，他们的意见也是那么庸俗。他们宁愿让大思想家的名着摆在书架上，但那些平庸文人所写的毫无价值的书，只要是新出版的，便争先恐后地阅读。太愚蠢了！<br>平凡的作者所写的东西，像苍蝇似的每天产生出来，一般人只因为它们是油墨未干的新书，而爱读之，真是愚不可及的事情。这些东西，在数年之后必遭淘汰，其实，在产生的当天就应当被遗弃的才对，它只可做为后世的人谈笑的资料。</p>
+<blockquote>
+<p>无论什么时代，都有两种不同的文艺，似乎各不相悖的并行着。一种是真实的，另一种只不过是貌似的东西。前者成为不朽的文艺，作者纯粹为文学而写作，他们的进行是严肃而静默的，然而非常缓慢。在欧洲一世纪中所产生的作品不过半打。另一类作者，文章是他们的衣食父母，但它们却能狂奔疾驰，受旁观者的欢呼鼓噪，每年送出无数的作品于市场上。但在数年之后，不免令人发生疑问：它们在哪里呢？它们以前那喧嚣的声誉在哪里呢？因此，我们可称后者为流动性的文艺，前者为持久性的文艺。</p>
+</blockquote>
+<h1 id="（八）"><a href="#（八）" class="headerlink" title="（八）"></a>（八）</h1><blockquote>
+<p>买书又有读书的时间，这是最好的现象，但是一般人往往是买而不读，读而不精。要求读书的人记住他所读过的一切东西，犹似要求吃东西的人，把他所吃过的东西都保存着一样。在身体方面，人靠所吃的东西而生活；在精神方面，人靠所读的东西而生活，因此变成他现在的样子。但是身体只能吸收同性质的东西，同样的道理，任何读书人也仅能记住他感兴趣的东西，也就是适合于他的思想体系，或他的目的物。任何人当然都有他的目的，然而很少人有类似思想体系的东西，没有思想体系的人，无论对什么事都不会有客观的兴趣，因此，这类人读书必定是徒然无功，毫无心得。</p>
+<p>Repetitio est Mater Studioun（温习乃研究之母）。任何重要的书都要立即再读一遍，一则因再读时更能了解其所述各种事情之间的联系，知道其末尾，才能彻底理解其开端；再则因为读第二次时，在各处都会有与读第一次时不同的情调和心境，因此，所得的印象也就不同，此犹如在不同的照明中看一件东西一般。</p>
+</blockquote>
+<p>作品是作者精神活动的精华，如果作者是一个非常伟大的人物，那么他的作品常比他的生活还有更丰富的内容，或者大体也能代替他的生活，或远超过它。平庸作家的着作，也可能是有益和有趣的，因为那也是他的精神活动的精华，是他一切思想和研究的成果。但他的生活际遇并不一定能使我们满意。因此，这类作家的作品，我们也不妨一读。何况，高级的精神文化，往往使我们渐渐达到另一种境地，从此可不必再依赖他人以寻求乐趣，书中自有无穷之乐。<br>没有别的事情能比读古人的名著更能给我们精神上的快乐。我们一拿起一本这样的古书来，即使只读半小时，也会觉得无比的轻松、愉快、清净、超逸，仿佛汲饮清冽的泉水似的舒适。这原因，大概一则是由于古代语言之优美，再则是因为作者的伟大和眼光之深远，其作品虽历数千年，仍无损其价值，我知道目前要学习古代语言已日渐困难，这种学习，如果一旦停止，当然会有一种新文艺兴起，其内容是以前未曾有过的野蛮、浅薄和无价值。德语的情况更是如此。现在的德语还保留有古代的若干优点，但很不幸的是有许多无聊作家正在热心而有计划地予以滥用，使它渐渐成为贫乏、残废，或竟成为莫名其妙的语言。<br>文学界有两种历史：一种是政治的，一种是文学和艺术的。前者是意志的历史；后者是睿智的历史，前者的内容是可怕的，所写的无非是恐惧、患难、欺诈及可怖的杀戮等等；后者的内容都是清新可喜的，即使在描写人的迷误之处也是如此。这种历史的重要分支是哲学史。哲学实在是这种历史的基础低音，这种低音也传入其他的历史中。所以，哲学实在是最有势力的学问，然而它的发挥作用是很缓慢的。</p>
+<h1 id="（九）"><a href="#（九）" class="headerlink" title="（九）"></a>（九）</h1><p>我很希望有人来写一部悲剧性的历史，他要在其中叙述：世界上许多国家，无不以其大文豪为民族的炫耀，但在他们生前，却遭到虐待；他要在其中描写，在一切时代和所有的国家中，真和善常对邪和恶作无穷的斗争；他要描写，在任何艺术中，人类的大导师们几乎全都遭灾殉难；他要描写，除了少数人外，他们从未被赏识和关心，反而常受压迫，或流离颠沛，或贫寒饥苦，而富贵荣华则为庸碌卑鄙之辈所享受，他们的情形和创世纪中的以扫（Esau）相似（旧约故事，以扫和雅各为孪生兄弟。以扫出外为父亲击毙野兽时，雅各穿上以扫的衣服，在家里接受父亲的祝福）。然而那些大导师仍不屈不挠，继续奋斗，终能完成其事业，光耀史册，永垂不朽。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;叔本华（1788-1860），德国著名哲学家。&lt;br&gt;无论悲观与否，叔本华到底是个清醒的思想者，他的文章往往如解毒剂般，一针见血入木三分，如《读书与书籍》，“我们的‘精神食粮’如太多，也是无益而有害。”谁说不是呢？“如果我们想要知道他在路上看见些什么，则必须用我们自己的眼睛。”读书如果没有自己的眼睛，那还叫读吗？所以，尽管这些话读来未免“令人兴起泫然欲泣的感觉”，但良言逆耳，终究是值得我们铭记于心的。&lt;/p&gt;
+&lt;p&gt;摘自 《叔本华散文集》&lt;br&gt;英文文章地址：&lt;a href=&quot;http://www.berfrois.com/2013/02/on-books-and-reading-schopenhauer/&quot;&gt;http://www.berfrois.com/2013/02/on-books-and-reading-schopenhauer/&lt;/a&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
+    
+      <category term="Reading" scheme="http://seanxp.com/tags/Reading/"/>
+    
+      <category term="Book" scheme="http://seanxp.com/tags/Book/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>不惋惜，不呼唤，我也不啼哭</title>
+    <link href="http://seanxp.com/2015/yesenin/"/>
+    <id>http://seanxp.com/2015/yesenin/</id>
+    <published>2015-03-25T04:04:55.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>作者：叶赛宁<br>译者：顾蕴璞</p>
+<a id="more"></a>
+<p>不惋惜，不呼唤，我也不啼哭，<br>一切将逝去…如苹果花丛的薄雾<br>金黄的落叶堆满我心间——<br>我已经再不是青春少年。</p>
+<p>心儿啊，你已开始悄悄冷却，<br>如今再不会那样地跳跃：<br>这白桦的图案织成的家园，<br>再不能吸引我赤脚留连。</p>
+<p>流浪者的激情哪！越来越不见你，<br>促使我轻轻吐出火热的言语。<br>啊，我的白白流逝的华年！<br>迸发的憎恨和奔放的情感！</p>
+<p>如今我已倦于期待未来，<br>生活呀，难道你是一场幻梦？<br>仿佛我曾在喧闹的春晨<br>在玫瑰色的骏马上尽情驰骋。</p>
+<p>槭树的黄叶落地无声，<br>世人都必将腐朽无踪…<br>天下的众生啊，你们生生不息，<br>我愿你永远美好、繁荣！</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;作者：叶赛宁&lt;br&gt;译者：顾蕴璞&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Poetry" scheme="http://seanxp.com/tags/Poetry/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>谈今年的红包现象</title>
+    <link href="http://seanxp.com/2015/red-packet/"/>
+    <id>http://seanxp.com/2015/red-packet/</id>
+    <published>2015-02-26T00:35:33.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>2015新年的最大亮点，大概就是互联网公司举办的各种抢红包活动吧。<br>尤其是还没到大年初一，微信和支付宝就已经斗得你死我活了，继支付宝红包分享到微信的功能仅几个小时就遭到微信封杀之后，支付宝又推出安全度不怎么高的红包口令（不知道有多人尝试过随便打口令领红包）。<br>支付宝屏蔽来自微信的链接请求，微信又屏蔽支付宝的支付方式，京东压根没有支付宝支付的选项，互联网巨头间的相互屏蔽已经屡见不鲜了。<br>微信和支付宝真的就没有共赢的方式吗？<br>有是有，不过对于移动支付这块大蛋糕，双方都想独吞（微信社交优势大过阿里系来往，阿里系支付宝大过微信支付），根本没有考虑过如何利用自身特点来划分市场。<br>在打车大战中曾经斗得你死我活的滴滴和快的，如今已经烧不起钱，开始尝试坐在同一张谈判桌上商讨合并事宜喽。不过后面还有一个易到用车在虎视眈眈着打车市场。<br>不说这些互联网公司了，谈谈抢红包的我们。</p>
+<a id="more"></a>
+<h2 id="新年抢红包现象"><a href="#新年抢红包现象" class="headerlink" title="新年抢红包现象"></a>新年抢红包现象</h2><p>继支付宝推出“讨红包”这个功能后，我的支付宝时不时就有几个朋友来讨红包。</p>
+<ul>
+<li>你说给吧，给多少合适？难道还要我根据彼此间的感情程度建一个红包分发模型？或者不管是谁统一666顺顺，888发发发？</li>
+<li>你说不给吧，又感觉社交上过不去，朋友可能大呼“一毛钱都不给我，以后不能在一起愉快的玩耍了”。</li>
+</ul>
+<p>当我还在为红包分发模型头疼时，发现支付宝又一次默默的使用了我的通讯录，红包中心列出两个大大的“红包放排行榜”与“红包收排行榜”。<br>我给支付宝通讯录权限是为了转账方便，不是为了坑爹的过年还要攀比下红包。<br>不过比起微信红包，支付宝红包的社交功能实在有些生硬了。一讨一收，随手感谢，连感谢词都自动生成了，彼此间的交流仅剩下“红果果”的金钱交易了。<br>还有就是那场搬起石头没砸着微信，反而把自己砸到的“支付宝抢红包大战”了。支付宝通过官方微博宣布，在 2 月 11 日到 19 日将派送总价值高达 6 亿的无门槛红包。与此同时，微信也随后更新版本增加春节摇红包功能，腾讯宣布派发 65 亿红包。不过其实现金很大，更多的是各种优惠券。</p>
+<p>希望越大，失望越大，于是就有了下面强烈反差的一幕：</p>
+<ul>
+<li>马云发红包前都在喊“马云爸爸”、“什么都别说，先叫声干爹”；</li>
+<li>马云发完红包都在骂“骗子”、“有钱人还这么小气”；</li>
+</ul>
+<p>这个是偶然吗？不，这是支付宝发放红包的必然下场。支付宝拥有几亿的用户基数，即使发放几亿平摊到每个用户身上也都只是九牛一毛。可偏偏用户不这么想，用户从来不考虑分母，只想着你这么大的分子，为啥分到我这里连一块都不到。<br>于是就有了过年之前几日，每日上午10点，断断续续传来戳屏幕抢支付宝红包的声音。戳戳戳，戳戳戳，戳到在群里炫耀一番，没戳到黑支付宝一句，大家都乐了。<br>第一次支付宝抢红包，我关注了一下支付宝钱包的微博，一片嘲讽。还好支付宝的公关团队处理的很及时，找了一个合理的借口“用户太多，服务器触发过流保护”，给了一个台阶“红包没有发放完毕，下午加大发放力度，且均为现金红包”。其实也就第一天后两场抢的钱多，支付宝赔血本赚吆喝，我个人分别抢到一块、两块。之后…支付宝就再没这么豪爽过，基本就是0.58，0.88的发。</p>
+<p>这些雷声大雨点小的抢红包活动，在微信朋友圈中传出了这样的段子：</p>
+<blockquote>
+<p>凡是春节前给我卡里存500元的人，满40个我随机抽取一个人奖励10000元！比福彩更诚信，比体彩更透明！ 500变1万超划算！ 博一博，单车变摩托！ 拼一拼，拥有土豪金！ 赌一赌，吉利变陆虎！ 诚信第一！绝不作弊！！联系我，向我索取卡号！！！ 玩的就是诚信，赌的就是透明。</p>
+</blockquote>
+<p>支付宝红包其实很快就玩腻了，社交功能很鸡肋，我周围的朋友，没到大年初一，都已经纷纷转向微信红包了，因为至少抢到微信红包还能再聊上两句。微信红包还在一些聊天群里衍生出红包接龙游戏，每次发放一个微信红包，群里好友纷纷抢，抢到金额最多的（最佳手气）负责发放下一轮微信红包。</p>
+<blockquote>
+<p>抢红包的火爆，就是因为迎合了用户的这种需求。在任何时候，人类都渴望与他人产生更深层的联结。可是在网上的关系中，我们不能传递体温，传递眼神，传递关心（非口头的），我们能传递的只有冷冰冰的数据。那么好吧，我们让这个数据更有诚意一点。最终，我们找到了一种最可能带有温度的数据，就是钱。</p>
+<p>微信群的发红包抢红包，利用的人性弱点包括但不限于：基于熟人交际圈的“信任”和“大方”心理；基于抢红包金额不确定性的“悬念”和“赌徒”心理；基于春节期间有闲情逸致的“简单操作”模式和“娱乐”心理；基于“失去带来的痛苦远比得到带来的快乐多”的“欲望”和“不满足”心理（比如一个晚上发出去100元红包，抢了105元红包回来依然会怅然有失，不信您试试看~）；基于发红包和抢红包之后的炫耀或落寞心理，从而主动成为商家的免费广告者……</p>
+<p>在“我们”成为腾讯阿里们的用户（产品）时，“我们”的消费习惯和路径依赖、品牌认知和个人信息（包括一直在抵制的各种实名制），都由于上文所述的各种人性弱点，免费且主动送给了腾讯阿里们，而这些带有隐私和秘密性质的信息，往往是除了自己连家人都未必清楚的极有价值的信息。所以，尽管我们未支付分文，却付出了高昂代价。</p>
+<p>白领版本的卖场里抢特价食用油、鸡蛋。和大爷大妈的游戏差不多。大妈大爷背后是超市，红包背后是支付宝、微信低成本获取了大量用户的实名和支付信息。</p>
+<p>当日新月异的科技浪潮像海啸一般袭来，当免费的红包从天而降，最有价值的应该始终是“我们”。</p>
+</blockquote>
+<p>以上引用来自 <a href="http://www.zhihu.com/question/28112483" target="_blank" rel="external">知乎 “如何看待新年抢红包的用户心理？”</a></p>
+<h2 id="红包发放模型研究"><a href="#红包发放模型研究" class="headerlink" title="红包发放模型研究"></a>红包发放模型研究</h2><p>那么红包应该如何发呢？春节果壳网有一篇文章：<a href="http://www.guokr.com/article/439966/" target="_blank" rel="external">压岁钱得而复失，为何比干脆不得还痛苦？</a> 以下内容节选自此文章。</p>
+<blockquote>
+<p>损失厌恶：丢钱比赢钱带来的心理影响更大</p>
+</blockquote>
+<p>在回答之间，我们先来玩一个游戏：游戏中，你有50%的概率赢100元，还有50%的概率输100元。请问你愿意参加这个游戏吗？<br>如果你拒绝参加，那么你和大部分人的选择是一样的。作为行为经济学开创者的丹尼尔·卡尼曼（Daniel Kahneman）和阿莫斯·特维尔斯基（Amos Tversky）教授，通过研究这一游戏，在1979年的论文中提出了<strong>损失厌恶(loss aversion)</strong>这一概念。</p>
+<blockquote>
+<p>人们讨厌损失，由损失引发的负效用，要大于由等量收益引发的正效用，这意味着损失的心理价值要大于收益的心理价值。</p>
+</blockquote>
+<p>我们为什么会拒绝上面的游戏呢？因为输赢的概率都是50%，而输100元的痛苦程度要大于赢100元的开心程度。也就是说，这个游戏的预期效用是负数，所以我们拒绝了它。<br>试着问自己一个问题：想要平衡可能损失的100元，你需要得到最少多少元的收益呢？卡尼曼在之后的研究中发现，大部分人的答案是约200元，也就是损失的2倍。这个倍数也被定义为<strong>损失厌恶系数</strong>。还有几个实验也对这个系数做过估计，它们大多落在1.5-2.5之间。这意味着，损失在心理中所占的权重约是收益的2倍。<br>所以回到开头收压岁钱那个情景中。收到压岁钱固然是一件开心的事，可之后失去等量的压岁钱，其造成的痛苦是收到它时带来的快乐的2倍。因此得而复失，比干脆不得还痛苦。在面对一个许诺时，你种下了一个希望，可之后希望破灭带来的痛苦，与之前的开心程度相比要翻一番，这也就暗合了“希望越大，失望越大”。<br>收红包也是同样的道理，给一个人发100元的红包，不如今天发50元，明天发50元，让人的快乐更持久。</p>
+<blockquote>
+<p>作为发红包的一方，最好的方式就是“少额多次”。</p>
+</blockquote>
+<p>一口气直接发完，春节的后面几天怎么办？人家收到红包兴奋一天，之后的几天又去找新的小伙伴玩耍了。多次可以在整个春节期间，和朋友间持续保持活跃的互动与社交来往。</p>
+<blockquote>
+<p>发放红包的金额，要依据自己的经济能力与朋友圈的经济能力来决定。红包发的大，没有抢到红包的人，其损失厌恶心理，需要双倍的红包金额才能平复。</p>
+</blockquote>
+<p>发大额红包，难免被冠以“炫耀”的高帽子。所以发放红包的金额最好与朋友圈平均金额持平左右，切勿做枪头鸟，散尽家财落个坏名声。</p>
+<h2 id="红包收取模型研究"><a href="#红包收取模型研究" class="headerlink" title="红包收取模型研究"></a>红包收取模型研究</h2><p>有发红包的，就有收红包的。尤其是在微信群里，可是存在有很多“闷声发大财”(蛤?)的小伙伴们。所以就有了最佳手气进行红包接龙的游戏规则。<br>这种接龙红包，其发放的金额一般都很小，低至1块钱掰成10份发，高的也有（微信的红包金额上限很人性化，也让发放红包更持久）。<br>群里经常有人喊，自己辛辛苦苦闷声抢红包这么久，还是没攒够多少钱，这是为什么呢？<br>果壳网有这样一篇文章：<a href="http://www.guokr.com/article/439983/" target="_blank" rel="external">红包统计学：为何有些人盆钵满盈，有些人入不敷出？</a>，其中假设了几个红包收取模型：</p>
+<p><strong>红包初级模型——切面条法</strong></p>
+<p>一开始就把所有的钱一次性分成几个包，每人抓一个，每个包都是等同的，里面的钱数期望都是总金额的几分之一。满足这个要求的做法当然不止一个，但我们先考虑最符合直觉的办法——切面条。<br>以下就是切面条法分红包的一个实例，总金额为1元，分成5个：<br>0.02669467, 0.248426309, 0.23745777, 0.35864430, 0.12877695;<br>对于这种分法，我们可以数学上证明，当1块钱（或者长度为1的面条）分成n份儿的时候，而最小值的期望为 <code>1/n^2</code>。<br>在抢红包过程中，我们也遇到过，明明人家发了10块钱的红包，为什么就我抢了0.01分钱，楼上却抢了两块甚至三块！</p>
+<p><strong>红包进阶模型——狄利克雷分布</strong></p>
+<p>复习一下刚才的切面条模型要点。</p>
+<ul>
+<li>一次可以生成n个随机数，且总和为1，这样每个数乘以红包总金额就是每个人分得的钱；</li>
+<li>每个随机数的期望应该均等，即n分之一，这是为了保证大家抢红包机会平等；</li>
+</ul>
+<p>现在我们为它增加一个第三条：</p>
+<ul>
+<li>有一个参数可以用来调节红包的“公平”程度。</li>
+</ul>
+<p>这里的公平不是指机会公平，而是说每次发红包大家实际拿到手的钱是不是相近，即金额分配的波动性是大还是小。<br>比如100元的红包发给10个人，如果每人都是10元左右，我们认为这种分配更公平些；如果最少的才0.8元，最多的有20元，显然就有失公允了（不幸的是作者好几次碰到这种情况…）。</p>
+<p>幸运的是，在众多的随机变量分布中，有一个“狄利克雷分布”非常适合上面列出的这些情况。狄利克雷分布本身有n个参数，但为了满足条件2，我们可以只用一个参数系数来决定它的具体形式。系数越大，每人分得的金额比例就越倾向于平均，反之则波动性越大。<br>更幸运的是，我们开始提出的切面条分法，恰恰就是当为1的时候，狄利克雷分布的最简单状态。</p>
+<h2 id="模拟接力游戏"><a href="#模拟接力游戏" class="headerlink" title="模拟接力游戏"></a>模拟接力游戏</h2><p>有了这个假想的红包分配机制,我们就可以来模拟红包接力的游戏.<br>首先假设我们有一个50人的群,每人初始手头上的可用金额为50元(这里是为了产生”破产”现象而故意放低的,土豪们请忽略此设定).<br>根据规则，每次红包的总金额是20元，发放给10个人，其中抢得最大红包金额的人将发出下一轮的红包。如果某人发完红包后余额变成了负值，就不能再继续抢红包, 因为他/她已经发不起下轮红包了，但允许现在其余额为负。<br>在我们的模拟中，依然对实际情况做了很多简化，比如假设抢到红包的人是在参与游戏的人中间均匀分布的（排除了资产为负的人）。在实际情况中，大家可能会根据自己余额的多少来决定是否继续参加，但在此我们忽略了这种可能。<br>经过模拟,有两位朋友不幸破产了,而最后资产最多的有92.20元,几乎翻了一倍.</p>
+<blockquote>
+<p>一个很明显的事实是，破产的玩家都是因为“中头奖”中得太多了， 导致入不敷出。相反，最终收得92.20元的这位玩家属于“闷声发大财”。<br>经统计，他/她获得第一名0次，第二名3次，第三名2次，第四名2次，第五名4次等等</p>
+</blockquote>
+<p>我们注意到，在游戏最开始的时候，大家的资金都是一样的（50元），而在100次接力之后，几家欢喜几家愁，贫富差距被拉大了。于是我们有两个很自然的问题:</p>
+<ol>
+<li>如何量化这种贫富差距</li>
+<li>随着游戏的进程，贫富差距会有怎样的变化</li>
+</ol>
+<p>对于第一个问题，我们可以借用经济学中的一个概念来予以回答，那就是所谓的<strong>“基尼系数”(Gini Coefficient)</strong>.<br>基尼系数通常被用来衡量一个国家居民收入的公平性，其取值在0到1之间，越大表示贫富差距越大，即少部分的人掌握了这个经济体大部分的收入。<br>基尼系数的计算公式可以在它的维基页面中找到，对于之前的模拟游戏结果，计算出的基尼系数是0.2551。</p>
+<blockquote>
+<p>随着接力的进行，基尼系数的整体趋势是在不断变大的，意味着贫富差距会随着游戏的进行变得越来越大。这其实很好理解：总是会有人因为拿了太多头奖而破产，这样财富会在越来越少的人中间进行分配，所以相应地贫富差距就拉大了。</p>
+</blockquote>
+<h2 id="红包现象背后的思索"><a href="#红包现象背后的思索" class="headerlink" title="红包现象背后的思索"></a>红包现象背后的思索</h2><p>今年过节有个很独特的现象，很多人随手接过长辈发过来的几百元红包，却一直低着头盯着微信群里的红包动态。<br>好像在这些人眼里，亲戚长辈发红包已经是绝对不变的，而微信群红包才是凭自己真实本事抢来的。不劳而获，从古代的守株待兔到现代的永动机理论，永远对人类有着吸引力。<br>过年时我也在群里抢过一段时间红包，当时凭着4G网络经常以手速第一抢得红包，不过玩过一段时间，发现自己的微信钱包竟然瘪了（很不幸，我是贫富差距拉开下的淘汰者）。<br>其实我没想靠抢红包发家致富，不过是借着新年红包，和一群好友聊聊天罢了，相信很多朋友也是这样吧，平时死气沉沉的群，因为红包的原因，各路潜水者都浮出来冒泡了。</p>
+<p>新春佳节，由于红包引发以上一连串的思索。<br>希望朋友们多多珍惜眼前，同时可以通过网络红包这一新型的社交方式，与朋友分享彼此间的快乐。</p>
+<p>顺颂<br>春祺！</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;2015新年的最大亮点，大概就是互联网公司举办的各种抢红包活动吧。&lt;br&gt;尤其是还没到大年初一，微信和支付宝就已经斗得你死我活了，继支付宝红包分享到微信的功能仅几个小时就遭到微信封杀之后，支付宝又推出安全度不怎么高的红包口令（不知道有多人尝试过随便打口令领红包）。&lt;br&gt;支付宝屏蔽来自微信的链接请求，微信又屏蔽支付宝的支付方式，京东压根没有支付宝支付的选项，互联网巨头间的相互屏蔽已经屡见不鲜了。&lt;br&gt;微信和支付宝真的就没有共赢的方式吗？&lt;br&gt;有是有，不过对于移动支付这块大蛋糕，双方都想独吞（微信社交优势大过阿里系来往，阿里系支付宝大过微信支付），根本没有考虑过如何利用自身特点来划分市场。&lt;br&gt;在打车大战中曾经斗得你死我活的滴滴和快的，如今已经烧不起钱，开始尝试坐在同一张谈判桌上商讨合并事宜喽。不过后面还有一个易到用车在虎视眈眈着打车市场。&lt;br&gt;不说这些互联网公司了，谈谈抢红包的我们。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Analysis" scheme="http://seanxp.com/categories/Analysis/"/>
+    
+    
+      <category term="Social" scheme="http://seanxp.com/tags/Social/"/>
+    
+      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
+    
+      <category term="Math" scheme="http://seanxp.com/tags/Math/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>井字棋优胜策略</title>
+    <link href="http://seanxp.com/2015/tic-tac-toe/"/>
+    <id>http://seanxp.com/2015/tic-tac-toe/</id>
+    <published>2015-02-24T23:59:35.000Z</published>
+    <updated>2017-02-03T07:09:58.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>井字棋可能是最简单的棋类游戏了，它简单到了成年人之间玩几乎总是平局的地步。因此，这个游戏貌似最多只能哄哄小孩子。<br>不过，对井字棋游戏中所有可能的情况进行一番细致的分析，你会发现一个你或许不会料到的惊人结论 ——<br><strong>先手的最优策略不是稳坐正中央，而是先占一个角！</strong></p>
+<a id="more"></a>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>因为怀旧电子宠物，在手机上下载了一个ios小游戏“Hatch”。<br>由于在这个电子宠物世界也存在金币，生存需要一定数量的金币，因此也同样存在几个挣金币的方法，其中一个就是井字棋。<br>考虑到挣金币的效率性，我放弃了几个简单无脑的游戏（包子剪子锤，概率性太大 / 接元宝，金币挣取效率低），最后决定研究一下井字棋优胜策略。<br>借助万能的搜索引擎，在果壳网搜到一篇<a href="http://www.guokr.com/article/4754/" target="_blank" rel="external">井字棋下棋策略</a>.</p>
+<h2 id="先手先占角"><a href="#先手先占角" class="headerlink" title="先手先占角"></a>先手先占角</h2><p>游戏开始后，二话不说先占上一个角（比如左下角吧），那么对方总共有五种本质不同的应对策略：</p>
+<ol>
+<li>占据靠近你的那条边</li>
+<li>占据靠近你的那个角</li>
+<li>占据远离你的那条边</li>
+<li>占据远离你的那个角（即对角）</li>
+<li>占据正中央的位置</li>
+</ol>
+<p>在这五种策略中，前面四种都是陷阱——如果对方不慎选择了前面四种策略中的任意一种，他就必然输掉。（同样，如果你是后手，被人先手占角，只有选择占中才不会被人牵着走）</p>
+<p><img src="/images/2015/tic-tac-toe-1.png" alt="tic-tac-toe-1"></p>
+<p>上图显示了在这四种情况下你可以如何把对方一步步逼上绝路。</p>
+<p>假设对方走正下方，占据了一个靠近你的边（最左边的那个图），你就可以占据正中央来应对，逼迫对方不得不走右上角。<br>这时，只需要在左上角放下一子，你就赢定了——图中出现了两条只差一子的连线，对方不可能兼顾得了。</p>
+<p>右边几个图显示了对方第一步棋的其它几种走法。选择合适的位置应对他，都可以在下一步迫使对方只剩一种走法，接下来你便可以下出“一箭双雕”的棋，让对方无法彻底封杀你。</p>
+<p>也就是说，当你占据棋盘一角后，在对方下一步棋的八个可选位置中，其中七个位置都是必输的，陷阱摆满了几乎整个棋盘。<br>在面对“先走一角”的诡异开局时，你的朋友说不准就会慌了手脚，没能冷静地占住中间，决定了必败的命运。</p>
+<p><img src="/images/2015/tic-tac-toe-2.png" alt="tic-tac-toe-2"></p>
+<p>对方要是真的走了正中间，你仍然有赢的机会。你可以占住右上角的位置（如上图）。<br>如果对方不幸走了剩下的两个角中的一个（上图左），你便能故技重施，再次取得胜利。<br>只有对方选择了边上的位置（上图右），才能躲过这一系列的陷阱，最终变成平局。</p>
+<h2 id="后手还是先占角"><a href="#后手还是先占角" class="headerlink" title="后手还是先占角"></a>后手还是先占角</h2><p><img src="/images/2015/tic-tac-toe-3.png" alt="tic-tac-toe-3"></p>
+<p>作为后行者，你遇到的往往是“先走中间”的经典开局。<br>此时，千万别忘了，先占角仍然是一条金科玉律。如果你不慎走了某条边的位置，对方可就赢定了！对方可以向上面的第一幅图那样，在正右方下子应对，逼迫你把下一步棋落在正左方。<br>此时，对方便可占据右上方的位置，同时产生出两条仅差一子的连线。右边三幅图则显示，如果你在角上应对，最终总会是一盘和棋。</p>
+<p>反过来，先手第一步走中间，棋盘上剩下的八个位置中有四个位置都是会导致对方必败的陷阱，因此先手第一步走中间后，获胜的机会也并不小。<br>井字棋可以算是决策树最简单的游戏之一了。在历史上，对井字棋的类似分析很大程度上启发了人们对组合游戏的认识，在博弈论中起着举足轻重的作用。</p>
+<p>转载自果壳网：<a href="http://www.guokr.com/article/4754/" target="_blank" rel="external">http://www.guokr.com/article/4754/</a></p>
+<p>博客推荐：<a href="http://www.matrix67.com" target="_blank" rel="external">http://www.matrix67.com</a> , 一位数学爱好者的博客，里面有很多有趣的数学问题。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;井字棋可能是最简单的棋类游戏了，它简单到了成年人之间玩几乎总是平局的地步。因此，这个游戏貌似最多只能哄哄小孩子。&lt;br&gt;不过，对井字棋游戏中所有可能的情况进行一番细致的分析，你会发现一个你或许不会料到的惊人结论 ——&lt;br&gt;&lt;strong&gt;先手的最优策略不是稳坐正中央，而是先占一个角！&lt;/strong&gt;&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
+    
+      <category term="Math" scheme="http://seanxp.com/tags/Math/"/>
+    
+  </entry>
+  
+</feed>
