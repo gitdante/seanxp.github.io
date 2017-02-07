@@ -596,9 +596,9 @@ echo &quot;pinentry-program /usr/local/bin/pinentry-mac&quot; &gt;&gt; ~/.gnupg/
     
       <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
     
-      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
-    
       <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
   </entry>
   
@@ -1399,9 +1399,9 @@ hotkey.bind(hyper, &apos;Down&apos;, grid.pushWindowDown)
     
       <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
     
-      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
-    
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
     
@@ -1795,11 +1795,11 @@ UDP转发：建议勾选，如有问题则取消勾选
     
       <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
-    
-      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
     
   </entry>
   
