@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://seanxp.com/"/>
-  <updated>2017-02-06T16:47:05.000Z</updated>
+  <updated>2017-02-18T01:31:48.000Z</updated>
   <id>http://seanxp.com/</id>
   
   <author>
@@ -14,6 +14,163 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>OpenWrt Router</title>
+    <link href="http://seanxp.com/2017/OpenWrt-Router/"/>
+    <id>http://seanxp.com/2017/OpenWrt-Router/</id>
+    <published>2017-02-17T13:39:43.000Z</published>
+    <updated>2017-02-18T01:31:48.000Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote class="blockquote-center"><br>Free As The Wind<br>路由器是要带给人们幸福的东西啊！<br>不发光的路由器不是好路由器，是黑暗路由器。<br></blockquote>
+
+<a id="more"></a>
+<p>该方案提供一套 OpenWrt 完整的网络访问策略，使用 shadowsocks-libev 实现网络代理，dnsmasq + ChinaDNS 实现国内外代理分流与 DNS 防污染。</p>
+<h1 id="install-shadowsocks-libev"><a href="#install-shadowsocks-libev" class="headerlink" title="install shadowsocks-libev"></a>install shadowsocks-libev</h1><p><a href="https://github.com/shadowsocks/openwrt-shadowsocks" target="_blank" rel="external">openwrt-shadowsocks</a>，是一个专门为 OpenWrt 路由器定制过的 SS 软件包。<br>不懂如何交叉编译的朋友，可以直接下载编译过的 ipk 包在 OpenWrt 中直接安装，例如<a href="https://dl.bintray.com/aa65535/opkg/shadowsocks-libev/" target="_blank" rel="external">aa65535/shadowsocks-libev</a>，选择适配自己路由器芯片架构（可通过网络查询）的最新的 SS 软件包和相关依赖库。<br><strong>注意：下载他人的编译的软件包一定要谨慎，并确认可靠性。</strong></p>
+<p>例如 WR703N 的相关 ipk 软件包 <a href="https://dl.bintray.com/aa65535/opkg/shadowsocks-libev/3.0.2/OpenWrt/ar71xx/" target="_blank" rel="external">aa65535/shadowsocks-libev/3.0.2/ar71xx/</a> 中包括：</p>
+<ul>
+<li>shadowsocks-libev_3.0.2-1_ar71xx.ipk，要运行在路由器上的ss程序；</li>
+<li>libev_4.22-1_ar71xx.ipk，依赖包；</li>
+<li>libmbedtls_2.4.0-2_ar71xx.ipk，依赖包；</li>
+<li>libpcre_8.39-1_ar71xx.ipk，依赖包；</li>
+<li>libsodium_1.0.11-2_ar71xx.ipk，依赖包；</li>
+</ul>
+<p>另外可以下载 <a href="https://github.com/shadowsocks/luci-app-shadowsocks" target="_blank" rel="external">luci-app-shadowsocks</a>，luci-app-shadowsocks 软件包是 shadowsocks-libev 的 LuCI 控制界面，方便用户控制和使用「透明代理」「SOCKS5 代理」「端口转发」功能。<br>下载完 ipk 软件包以后，scp/rsync 拷贝到 OpenWrt 并安装，安装时注意依赖关系，按顺序安装，如果出现错误可根据错误提示 Google 解决：</p>
+<pre><code># opkg install libev*.ipk libmbedtls*.ipk libpcre*.ipk libsodium*.ipk
+# opkg install shadowsocks-libev*.ipk luci-app-shadowsocks*.ipk
+</code></pre><h1 id="configure-shadowsocks-libev"><a href="#configure-shadowsocks-libev" class="headerlink" title="configure shadowsocks-libev"></a>configure shadowsocks-libev</h1><ol>
+<li>登录 LuCI 后台（web 浏览器输入路由器地址），输入 root 密码，在菜单栏会看到新安装的 <code>Services - ShadowSocks</code>；</li>
+<li><code>Services -&gt; ShadowSocks -&gt; Servers Manage</code>，添加 SS 服务器信息（可购买或自行VPS搭建），可以同时添加多个服务器的配置信息。且服务器地址必须填入实际 IP 地址而非域名；</li>
+<li><code>Services -&gt; ShadowSocks -&gt; General Settings</code>，<code>Transparent Proxy（透明代理）</code>选择刚才添加的服务器，<code>SOCKS5 Proxy（SOCKS5 代理）</code>也选择刚才添加的服务器，<code>Port Forward</code> 不修改（依然是 Disable，具体原因会讲，将使用 dns-forwarder 代替）；</li>
+<li>查看配置信息，确认无误后，点击 <code>Save &amp; Apply</code>，路由器会自动启动 SS，且默认开机自启动；</li>
+<li>局域网下，其他设备，关闭之前配置的代理信息，打开浏览器，「It just works!」；</li>
+</ol>
+<p>注意：这样配置，「It just works!」，但是不够优雅，因为这样是 SS 全局代理，虽然可以代理国外网站，但是国内网站的速度由于走代理会慢不少。因此下面使用 ChinaDNS + DNS-Forwarder 实现国内外 IP 分流。</p>
+<h2 id="Transparent-Proxy"><a href="#Transparent-Proxy" class="headerlink" title="Transparent Proxy"></a>Transparent Proxy</h2><p>透明代理（Transparent Proxy）：对应程序 ss-redir，是 shadowosocks 代理的基础服务，提供 TCP/UDP 透明代理。ss-redir 将客户端的原始数据封装成 shadowsocks 协议内容，转发（常用 ss-redir 作为 iptables REDIRECT 的代理服务器程序）给 shadowsocks server，实现透明转发。</p>
+<ul>
+<li>主服务器：透明代理使用的默认服务器（TCP 透明代理、端口转发两个功能会使用这里选择的服务器），此处从列表中选择你需要使用的服务器。</li>
+<li>UDP服务器：UDP 透明代理使用的服务器，可以和主服务器一致，也可以不同（也就是可以使用不同的服务器分别代理 TCP 和 UDP 连接）。在代理一些外服网络游戏的时候可能比较有用，其他多数情况下可以关闭。开启此项需要服务器支持，服务器端需要开启 UDP 功能。</li>
+<li>本地端口：shadowsocks 服务需要占用一个路由器端口，推荐保留默认，但不能和其他运行的程序有冲突，也不能和下面「SOCKS5 代理」和「端口转发」中的本地端口冲突。<br>ss-redir 与 ss-tunnel 的关系：<a href="https://github.com/shadowsocks/openwrt-shadowsocks/issues/82" target="_blank" rel="external">ss-redir已经支持udp了，还需要ss-tunnel吗？</a></li>
+</ul>
+<h2 id="SOCKS5-Proxy"><a href="#SOCKS5-Proxy" class="headerlink" title="SOCKS5 Proxy"></a>SOCKS5 Proxy</h2><p>SOCKS5 代理，对应程序 ss-local，实现 shadowsocks 的 SOCKS5 代理功能，路由器作为 SOCKS5 代理服务器。默认端口 1080。<br><a href="https://www.wikiwand.com/zh-hans/SOCKS" target="_blank" rel="external">SOCKS</a> 是一种网络传输协议，主要用于客户端与外网服务器之间通讯的中间传递。SOCKS 是 “SOCKetS” 的缩写。当防火墙后的客户端要访问外部的服务器时，就跟 SOCKS 代理服务器连接。这个代理服务器控制客户端访问外网的资格，允许的话，就将客户端的请求发往外部的服务器。这个协议最初由 David Koblas 开发，而后由NEC的 Ying-Da Lee 将其扩展到版本4。最新协议是版本5，与前一版本相比，增加支持 UDP、验证，以及 IPv6。<br>根据OSI模型，SOCKS是会话层的协议，位于表示层与传输层之间。（shadowsocks 只代理传输层数据 TCP/UDP，使用网路层 ICMP 协议的 ping 命令无法走 shadowsocks 代理，即使可以代理访问 google.com 也无法 ping 通）</p>
+<h2 id="Port-Forward"><a href="#Port-Forward" class="headerlink" title="Port Forward"></a>Port Forward</h2><p>Port Forward（端口转发），对应程序 ss-tunnel，通常用作转发 DNS。ss-tunnel 将监听 5300 端口（可修改），将监听到的数据包经过 SS 代理，转发给 8.8.4.4:53（可修改），因此可以通过此方法防止 DNS 污染。<br>在局域网下的其他电脑进行指定端口进行 DNS 解析，解析出来的 IP 可通过网络查询是否是真实IP。</p>
+<pre><code>$ dig @192.168.1.1 www.youtube.com -p5300
+</code></pre><p>注意：由于性能问题（<a href="https://github.com/breakwa11/shadowsocks-rss/issues/264" target="_blank" rel="external">ss-tunnel 在使用混淆之后的udp通讯经常被阻断</a>），本文方案中的端口转发改用 DNS-Forwarder，因此这里 Port Forward 设置为 disable。</p>
+<h2 id="Access-Control"><a href="#Access-Control" class="headerlink" title="Access Control"></a>Access Control</h2><p>Access Control（访问控制），这里可以选择配置 SS 的代理范围。分外网（Zone WAN）与内网（Zone LAN）两部分。</p>
+<h3 id="Zone-WAN"><a href="#Zone-WAN" class="headerlink" title="Zone WAN"></a>Zone WAN</h3><p>被忽略IP列表（Bypassed IP List），可以指定一份避免走代理的 IP 列表，例如构造列表 <code>/etc/shadowsocks/ignore.list</code>，里面枚举了国内的 IP 列表，可以避免访问国内网站走代理。（这种方法已不再使用，而是改为 ChinaDNS方案，IP 列表为 <code>/etc/chinadns_chnroute.txt</code>，原理类似）<br>创建国内IP段列表，用于忽略国内目标主机。防止走代理，可以将 IP 添加到 ignore.list 中。</p>
+<pre><code># mkdir /etc/shadowsocks
+# wget -O- &apos;http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest&apos; | awk -F\| &apos;/CN\|ipv4/ { printf(&quot;%s/%d\n&quot;, $4, 32-log($5)/log(2)) }&apos; &gt; /etc/shadowsocks/ignore.list
+</code></pre><p>代理方法（<code>Access Control - Zone WAN - Proxy method</code>）选择忽略列表（ignore list），并在 –custom– 中填入 <code>/etc/shadowsocks/ignore.list</code>。代理协议（Proxy protocol）选择 TCP+UDP。<br>注意：本文使用 ChinaDNS 方案，安装 ChinaDNS 后，这里的 ignore list 选择 ChinaDNS 即可。</p>
+<p>额外被忽略IP（Bypassed IP）：这个列表中的 IP 强制绕过 shadowsocks 代理，如果有多组 shadowsocks 服务器的可以将所有服务器的 IP 填进去，如果是单服务器不用填；其他按需添加。<br>强制走代理IP（Forwarded IP）：这个列表中的 IP 强制走 shadowsocks 代理，填入 8.8.8.8 和 8.8.4.4，其他按需添加。</p>
+<h3 id="Zone-LAN"><a href="#Zone-LAN" class="headerlink" title="Zone LAN"></a>Zone LAN</h3><p>内网区域（Zone LAN），控制特定内网 IP 的代理方式。</p>
+<ol>
+<li>网络接口：shadowsocks 只作用于勾选了的网络接口。默认 OpenWrt 只有一个LAN区域，此处也只会显示一个接口，也就是：“桥接：br-lan”；一般情况勾选它就行。当路由配置了多个LAN区域时候，则会显示多个。</li>
+<li>代理类型：内网区域默认的代理方式。<ul>
+<li>正常代理：使用外网区域设置的方式。</li>
+<li>直接连接：忽略外网区域的设置，不走代理。</li>
+<li>全局代理：忽略外网区域的设置，强制走代理。</li>
+</ul>
+</li>
+<li>代理自身：路由设备自身的代理方式。</li>
+<li>内网主机：单独配置内网特定IP的代理方式。</li>
+</ol>
+<h1 id="Pure-DNS"><a href="#Pure-DNS" class="headerlink" title="Pure DNS"></a>Pure DNS</h1><h2 id="DNS-cache-poisoning"><a href="#DNS-cache-poisoning" class="headerlink" title="DNS cache poisoning"></a>DNS cache poisoning</h2><p>只要安装好第一节的 shadowsocks-libev，就已经可以访问众多网站了。但是依然有几个问题：</p>
+<ol>
+<li>全局代理的弊端：最简单的配置，直接添加 SS 服务器信息，并打开（Transparent Proxy）和（SOCKS5 Proxy），这样的路由器是 SS 全局代理。可以通过添加 ignore list 的办法禁止国内 IP 走代理。</li>
+<li>DNS 污染，只要是 53 端口的 DNS 报文，都会面临 DNS 污染的情况。<ul>
+<li>直接污染：使用国外的知名 DNS 服务器（8.8.8.8 / 8.8.4.4），会在出口被篡改 DNS 报文的 IP 地址（DNS 攻击）。</li>
+<li>间接污染：使用国内的知名 DNS 服务器（114.114.114.114 / 119.29.29.29），在访问国外网站时会上溯至国外根服务器访问，依然面临 DNS 报文中 IP 地址被篡改的问题，并且有投毒效果，一人访问，多人中毒。</li>
+</ul>
+</li>
+</ol>
+<p><a href="https://www.wikiwand.com/zh-hans/%E5%9F%9F%E5%90%8D%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%BC%93%E5%AD%98%E6%B1%A1%E6%9F%93" target="_blank" rel="external">域名服务器缓存污染（DNS cache poisoning）</a>，又称域名服务器缓存投毒（DNS cache poisoning），是指一些刻意制造或无意中制造出来的域名伺服器封包，把域名指往不正确的IP位址。一般来说，在互联网上都有可信赖的网域伺服器，但为减低网络上的流量压力，一般的域名服务器都会把从上游的域名服务器获得的解析记录暂存起来，待下次有其他机器要求解析域名时，可以立即提供服务。一旦有关网域的局域域名服务器的缓存受到污染，就会把网域内的电脑导引往错误的服务器或伺服器的网址。<br>对所有经过出口的 DNS 报文（UDP:53）进行 IDS 入侵检测，匹配到黑名单关键词时，立刻伪装目标域名的解析服务器返回虚假的查询结果。由于通常的域名查询没有任何认证机制，而且域名查询通常基于无连接不可靠的UDP协议，查询者只能接受最先到达的格式正确结果，并丢弃之后的结果。</p>
+<p>想要检测目前的 DNS 是否被篡改，很简单的方法：</p>
+<pre><code>$ dig www.youtube.com
+$ dig @119.29.29.29 www.youtube.com
+$ dig @114.114.114.114 www.youtube.com
+</code></pre><p>解析到的 IP 地址，上网检索 IP 地址或 DNS 污染知名 IP 即可，网络上有收录注明污染 IP 地址列表。</p>
+<h2 id="ChinaDNS"><a href="#ChinaDNS" class="headerlink" title="ChinaDNS"></a>ChinaDNS</h2><ul>
+<li><a href="https://github.com/aa65535/openwrt-chinadns" target="_blank" rel="external">openwrt-chinadns</a></li>
+<li><a href="https://github.com/aa65535/openwrt-dist-luci" target="_blank" rel="external">luci-app-chinadns</a></li>
+</ul>
+<p>ChinaDNS 用于解决 DNS 污染问题，同时可加速国内网站的访问。<br>其原理如下：<br>提供至少一个国内 DNS 服务器和一个国外 DNS 服务器（通过设置 ChinaDNS 的上游服务器），ChinaDNS 收到来自用户的 DNS 请求后，同时向这两个服务器发 DNS 请求。如果从国内 DNS 服务器返回的解析结果为国外 IP，则选择国外 DNS 服务器的解析结果，否则选择国内 DNS 的解析结果（解析速度比国外解析快很多），最后返回给用户。<br>下载对应版本（路由器 CPU 架构）的 <code>ChinaDNS*.ipk</code> 与 <code>luci-app-chinadns*.ipk</code>，并生成国内的 IP 地址列表，用作绕 SS 代理。</p>
+<pre><code># opkg install ChinaDNS*.ipk luci-app-chinadns*.ipk
+# wget -O- &apos;http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest&apos; | awk -F\| &apos;/CN\|ipv4/ { printf(&quot;%s/%d\n&quot;, $4, 32-log($5)/log(2)) }&apos; &gt; /etc/chinadns_chnroute.txt
+</code></pre><p>安装完成后，登录路由器的 luci 管理页面 <code>Services -&gt; ChinaDNS</code>，勾选 <code>Enable（启用）</code>和 <code>Enable Bidirectional Filter （启用双向过滤）</code>，其他设置保持默认即可（也可修改本地端口）。<br>默认开启 <code>127.0.0.1:5353</code> 端口，监听 DNS 请求。<code>国内路由表（CHNRoute File）</code>默认位置 <code>/etc/chinadns_chnroute.txt</code>，上游服务器 <code>114.114.114.114,127.0.0.1:5300</code>。（可将国内 DNS 114.114.114.114 改成当前你所在网络的 ISP 所提供的 DNS 服务器 IP，以加快国内域名的解析速度）。<br>这里的国外 DNS 设置为 <code>127.0.0.1:5300</code>，是因为无法直接设置 <code>8.8.8.8</code>，否则会在网络出口被直接污染，需要通过走代理的方法避免污染。<br>走代理有两种方法：</p>
+<ul>
+<li>ss-tunnel，即开启 <code>ShadowSocks - General Settings - Port Forward</code>，将默认监听端口 5300 的 DNS 请求，并转发到目的地（默认为 8.8.4.4:53），实现 DNS 代理。<a href="https://github.com/aa65535/openwrt-chinadns/wiki/Use-DNS-Forwarder" target="_blank" rel="external">但是部分 ISP 下使用 ss-tunnel 不稳定，导致 ChinaDNS 无法正常工作，其根本原因是这类的 ISP 的 UDP 不稳定。</a></li>
+<li>DNS-Forwarder，实现类似 ss-tunnel 的端口转发功能，但是使用 ss 代理并 TCP 协议，可靠的多。</li>
+</ul>
+<h2 id="DNS-Forwarder"><a href="#DNS-Forwarder" class="headerlink" title="DNS-Forwarder"></a>DNS-Forwarder</h2><ul>
+<li><a href="https://github.com/aa65535/openwrt-dns-forwarder" target="_blank" rel="external">openwrt-dns-forwarder</a></li>
+<li><a href="https://github.com/aa65535/openwrt-dist-luci" target="_blank" rel="external">luci-app-dns-forwarder</a></li>
+<li><a href="https://github.com/aa65535/openwrt-chinadns/wiki/Use-DNS-Forwarder" target="_blank" rel="external">Wiki - Use DNS Forwarder</a></li>
+</ul>
+<p>安装 <code>dns-forwarder*.ipk</code> 和 <code>luci-app-dns-forwarder*.ipk</code>，录路由器的 luci 管理页面，<code>Services -&gt; DNS-Forwarder</code>，点击 Enable，修改监听端口为 5300，DNS Server 为 8.8.8.8，然后点击 <code>Save &amp; Apply</code>。</p>
+<h2 id="DNS-bridge"><a href="#DNS-bridge" class="headerlink" title="DNS bridge"></a>DNS bridge</h2><p>现在只是启动了 ChinaDNS 与 DNS-Forwarder，还没有把 DNS 桥接通顺（配置端口映射和转发关系）。</p>
+<ol>
+<li><code>luci - Network - Interfaces - WAN - Advanced Settings - Use DNS servers advertised by peer</code> 关闭，避免 WAN 接口连接外网时被上层路由器指定 DNS 服务器。</li>
+<li><code>luci - Network - DHCP and DNS - Server Settings - DNS forwardings</code>，设置为 <code>127.0.0.1#5353</code>，实现 端口 53 到本机端口 5353 的 DNS 转发，即将路由器接收到的 DNS 请求交给 ChinaDNS 处理。</li>
+<li><code>luci - Network - DHCP and DNS - Server Settings - Resolv and Hosts Files - Ignore resolve file</code> 关闭，虽然禁止了 WAN 接口指定 DNS，但是本机的 <code>/etc/resolv.conf</code> 还在，DNS 将会查询其中的 nameservers，这里也关闭。</li>
+<li>局域网内的其他上网设备，将预设的 DNS 删除，则连接 Wi-Fi 后默认 DNS 地址为路由器的 IP 地址，这样就将 DNS 解析交由路由器处理。</li>
+</ol>
+<p>DNS 线路解析：</p>
+<ul>
+<li>国外线路：<code>dnsmasq(:53)</code> –(dnsmasq-china-list)–(DNS forwardings)–&gt; <code>ChinaDNS(:5353)</code> –(CHNRoute File &amp; Upstream Servers)–&gt; <code>ss-tunnel / dns-forwarder (:5300)</code> –( Port Forward / DNS-Forwarder)–&gt; <code>ss server</code> –&gt;8.8.8.8:53</li>
+<li>国内线路：<code>dnsmasq(:53)</code> –(dnsmasq-china-list)–(DNS forwardings)–&gt; <code>ChinaDNS(:5353)</code> –(CHNRoute File &amp; Upstream Servers)–&gt; 114.114.114.114:53</li>
+</ul>
+<ol>
+<li><code>dnsmasq(:53)</code>，路由器的默认 DNS 监听端口，监听局域网内的 DNS 请求，其他设备将 DNS 设置为路由器 IP 后，DNS 请求交由路由器处理；</li>
+<li><code>dnsmasq-china-list</code>，提供一份国内域名的加速列表，国内域名可以直接通过指定的 DNS 服务器解析，并由 dnsmasqn 提供长时间的缓存，提高命中率，没有在加速列表中的国内域名，还可能会再走 ChinaDNS 的加速，所以不用担心列表不足；</li>
+<li><code>DNS forwardings</code>，/etc/config/dhcp（Network - DHCP and DNS），配置 DNS 转发为 <code>127.0.0.1#5353</code>（ChinaDNS），则路由器会将 53 端口的 DNS 转发给 5353 端口的 ChinaDNS 处理；</li>
+<li><code>ChinaDNS(:5353)</code> 的上游 DNS 服务器 配置为 114.114.114.114,127.0.0.1:5300，ChinaDNS 根据 CHNRoute File 确认 IP 的位置，国内默认走 114.114.114.114，国外默认走 127.0.0.1:5300；</li>
+<li><code>DNS-Forwarder(:5300)</code> 监听 5300 端口，并通过转发到 <code>8.8.8.8:53</code>，且在 ShadowSocks - Access Control 已经明确配置 8.8.8.8 必须走代理，最终绕开污染源。</li>
+</ol>
+<h2 id="dnsmasq"><a href="#dnsmasq" class="headerlink" title="dnsmasq"></a>dnsmasq</h2><p><a href="https://www.wikiwand.com/zh-hans/Dnsmasq" target="_blank" rel="external">Wiki - dnsmasq</a><br>Dnsmasq 是一个开源的轻量级 DNS 转发和 DHCP、TFTP 服务器，使用C语言编写。Dnsmasq 针对家庭局域网等小型局域网设计，资源占用低，易于配置。<br><strong>对于 OpenWrt 来说默认就安装了 dnsmasq，dnsmasq 监听了 53 端口，是系统的默认 DNS server。</strong><br>Dnsmasq 提供 DNS 缓存和 DHCP 服务功能。作为域名解析服务器（DNS），dnsmasq 可以通过缓存 DNS 请求来提高对访问过的网址的连接速度。作为 DHCP 服务器，dnsmasq 可以用于为局域网电脑分配内网 IP 地址和提供路由。</p>
+<p>编辑配置文件 <code>/etc/dnsmasq.conf</code>，在最后添加一行：</p>
+<pre><code>conf-dir=/etc/dnsmasq.d
+</code></pre><p>该配置让 dnsmasq 去加载 <code>/etc/dnsmasq.d</code> 目录下所有的配置。例如，生成一个 <code>/etc/dnsmasq.d/gfw.conf</code> 文件，把需要代理的域名代理给 ChinaDNS：</p>
+<pre><code># /etc/dnsmasq.d/gfw.conf --- google
+server=/.google.com/127.0.0.1#5353
+server=/.googlecode.com/127.0.0.1#5353
+server=/.googleapis.com/127.0.0.1#5353
+server=/.gmail.com/127.0.0.1#5353
+server=/.youtube.com/127.0.0.1#5353
+</code></pre><p>然后重启 dnsmasq 服务即可：</p>
+<pre><code># /etc/init.d/dnsmasq restart
+</code></pre><p>因为需要代理的域名很多而且很繁琐，因此这里使用 <a href="https://github.com/felixonmars/dnsmasq-china-list" target="_blank" rel="external">dnsmasq-china-list</a> 的代理配置：</p>
+<pre><code># mkdir -p /etc/dnsmasq.d/ &amp;&amp; mv /etc/dnsmasq.d/
+# wget --no-check-certificate https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/accelerated-domains.china.conf
+# wget --no-check-certificate https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/bogus-nxdomain.china.conf
+# wget --no-check-certificate https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/google.china.conf
+</code></pre><p>配置文件解析：</p>
+<ul>
+<li><code>accelerated-domains.china.conf</code>: Acceleratable Domains. The domain should have a better resolving speed or result when using a Chinese DNS server. 指定了国内的域名直接使用 <code>114.114.114.114</code> 即可，加速国内域名访问。</li>
+<li><code>bogus-nxdomain.china.conf</code>: Known addresses that are hijacking NXDOMAIN results returned by DNS servers. 一些常用的 DNS 劫持 IP。</li>
+<li><code>google.china.conf</code>: Acceleratable Google domains. 加速 Google 域名访问，使用 114 解析 Google 的 IP，只要部分可以，例如 youtube.com 即使 114 也可能是解析错误的。</li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Free As The Wind&lt;br&gt;路由器是要带给人们幸福的东西啊！&lt;br&gt;不发光的路由器不是好路由器，是黑暗路由器。&lt;br&gt;&lt;/blockquote&gt;
+    
+    </summary>
+    
+      <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
+    
+    
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="Router" scheme="http://seanxp.com/tags/Router/"/>
+    
+      <category term="Shadowsocks" scheme="http://seanxp.com/tags/Shadowsocks/"/>
+    
+      <category term="DNS" scheme="http://seanxp.com/tags/DNS/"/>
+    
+  </entry>
   
   <entry>
     <title>異議あり！</title>
@@ -2370,107 +2527,6 @@ UDP转发：建议勾选，如有问题则取消勾选
     
     
       <category term="Poetry" scheme="http://seanxp.com/tags/Poetry/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>谈今年的红包现象</title>
-    <link href="http://seanxp.com/2015/red-packet/"/>
-    <id>http://seanxp.com/2015/red-packet/</id>
-    <published>2015-02-26T00:35:33.000Z</published>
-    <updated>2017-02-03T07:09:58.000Z</updated>
-    
-    <content type="html"><![CDATA[<p>2015新年的最大亮点，大概就是互联网公司举办的各种抢红包活动吧。<br>尤其是还没到大年初一，微信和支付宝就已经斗得你死我活了，继支付宝红包分享到微信的功能仅几个小时就遭到微信封杀之后，支付宝又推出安全度不怎么高的红包口令（不知道有多人尝试过随便打口令领红包）。<br>支付宝屏蔽来自微信的链接请求，微信又屏蔽支付宝的支付方式，京东压根没有支付宝支付的选项，互联网巨头间的相互屏蔽已经屡见不鲜了。<br>微信和支付宝真的就没有共赢的方式吗？<br>有是有，不过对于移动支付这块大蛋糕，双方都想独吞（微信社交优势大过阿里系来往，阿里系支付宝大过微信支付），根本没有考虑过如何利用自身特点来划分市场。<br>在打车大战中曾经斗得你死我活的滴滴和快的，如今已经烧不起钱，开始尝试坐在同一张谈判桌上商讨合并事宜喽。不过后面还有一个易到用车在虎视眈眈着打车市场。<br>不说这些互联网公司了，谈谈抢红包的我们。</p>
-<a id="more"></a>
-<h2 id="新年抢红包现象"><a href="#新年抢红包现象" class="headerlink" title="新年抢红包现象"></a>新年抢红包现象</h2><p>继支付宝推出“讨红包”这个功能后，我的支付宝时不时就有几个朋友来讨红包。</p>
-<ul>
-<li>你说给吧，给多少合适？难道还要我根据彼此间的感情程度建一个红包分发模型？或者不管是谁统一666顺顺，888发发发？</li>
-<li>你说不给吧，又感觉社交上过不去，朋友可能大呼“一毛钱都不给我，以后不能在一起愉快的玩耍了”。</li>
-</ul>
-<p>当我还在为红包分发模型头疼时，发现支付宝又一次默默的使用了我的通讯录，红包中心列出两个大大的“红包放排行榜”与“红包收排行榜”。<br>我给支付宝通讯录权限是为了转账方便，不是为了坑爹的过年还要攀比下红包。<br>不过比起微信红包，支付宝红包的社交功能实在有些生硬了。一讨一收，随手感谢，连感谢词都自动生成了，彼此间的交流仅剩下“红果果”的金钱交易了。<br>还有就是那场搬起石头没砸着微信，反而把自己砸到的“支付宝抢红包大战”了。支付宝通过官方微博宣布，在 2 月 11 日到 19 日将派送总价值高达 6 亿的无门槛红包。与此同时，微信也随后更新版本增加春节摇红包功能，腾讯宣布派发 65 亿红包。不过其实现金很大，更多的是各种优惠券。</p>
-<p>希望越大，失望越大，于是就有了下面强烈反差的一幕：</p>
-<ul>
-<li>马云发红包前都在喊“马云爸爸”、“什么都别说，先叫声干爹”；</li>
-<li>马云发完红包都在骂“骗子”、“有钱人还这么小气”；</li>
-</ul>
-<p>这个是偶然吗？不，这是支付宝发放红包的必然下场。支付宝拥有几亿的用户基数，即使发放几亿平摊到每个用户身上也都只是九牛一毛。可偏偏用户不这么想，用户从来不考虑分母，只想着你这么大的分子，为啥分到我这里连一块都不到。<br>于是就有了过年之前几日，每日上午10点，断断续续传来戳屏幕抢支付宝红包的声音。戳戳戳，戳戳戳，戳到在群里炫耀一番，没戳到黑支付宝一句，大家都乐了。<br>第一次支付宝抢红包，我关注了一下支付宝钱包的微博，一片嘲讽。还好支付宝的公关团队处理的很及时，找了一个合理的借口“用户太多，服务器触发过流保护”，给了一个台阶“红包没有发放完毕，下午加大发放力度，且均为现金红包”。其实也就第一天后两场抢的钱多，支付宝赔血本赚吆喝，我个人分别抢到一块、两块。之后…支付宝就再没这么豪爽过，基本就是0.58，0.88的发。</p>
-<p>这些雷声大雨点小的抢红包活动，在微信朋友圈中传出了这样的段子：</p>
-<blockquote>
-<p>凡是春节前给我卡里存500元的人，满40个我随机抽取一个人奖励10000元！比福彩更诚信，比体彩更透明！ 500变1万超划算！ 博一博，单车变摩托！ 拼一拼，拥有土豪金！ 赌一赌，吉利变陆虎！ 诚信第一！绝不作弊！！联系我，向我索取卡号！！！ 玩的就是诚信，赌的就是透明。</p>
-</blockquote>
-<p>支付宝红包其实很快就玩腻了，社交功能很鸡肋，我周围的朋友，没到大年初一，都已经纷纷转向微信红包了，因为至少抢到微信红包还能再聊上两句。微信红包还在一些聊天群里衍生出红包接龙游戏，每次发放一个微信红包，群里好友纷纷抢，抢到金额最多的（最佳手气）负责发放下一轮微信红包。</p>
-<blockquote>
-<p>抢红包的火爆，就是因为迎合了用户的这种需求。在任何时候，人类都渴望与他人产生更深层的联结。可是在网上的关系中，我们不能传递体温，传递眼神，传递关心（非口头的），我们能传递的只有冷冰冰的数据。那么好吧，我们让这个数据更有诚意一点。最终，我们找到了一种最可能带有温度的数据，就是钱。</p>
-<p>微信群的发红包抢红包，利用的人性弱点包括但不限于：基于熟人交际圈的“信任”和“大方”心理；基于抢红包金额不确定性的“悬念”和“赌徒”心理；基于春节期间有闲情逸致的“简单操作”模式和“娱乐”心理；基于“失去带来的痛苦远比得到带来的快乐多”的“欲望”和“不满足”心理（比如一个晚上发出去100元红包，抢了105元红包回来依然会怅然有失，不信您试试看~）；基于发红包和抢红包之后的炫耀或落寞心理，从而主动成为商家的免费广告者……</p>
-<p>在“我们”成为腾讯阿里们的用户（产品）时，“我们”的消费习惯和路径依赖、品牌认知和个人信息（包括一直在抵制的各种实名制），都由于上文所述的各种人性弱点，免费且主动送给了腾讯阿里们，而这些带有隐私和秘密性质的信息，往往是除了自己连家人都未必清楚的极有价值的信息。所以，尽管我们未支付分文，却付出了高昂代价。</p>
-<p>白领版本的卖场里抢特价食用油、鸡蛋。和大爷大妈的游戏差不多。大妈大爷背后是超市，红包背后是支付宝、微信低成本获取了大量用户的实名和支付信息。</p>
-<p>当日新月异的科技浪潮像海啸一般袭来，当免费的红包从天而降，最有价值的应该始终是“我们”。</p>
-</blockquote>
-<p>以上引用来自 <a href="http://www.zhihu.com/question/28112483" target="_blank" rel="external">知乎 “如何看待新年抢红包的用户心理？”</a></p>
-<h2 id="红包发放模型研究"><a href="#红包发放模型研究" class="headerlink" title="红包发放模型研究"></a>红包发放模型研究</h2><p>那么红包应该如何发呢？春节果壳网有一篇文章：<a href="http://www.guokr.com/article/439966/" target="_blank" rel="external">压岁钱得而复失，为何比干脆不得还痛苦？</a> 以下内容节选自此文章。</p>
-<blockquote>
-<p>损失厌恶：丢钱比赢钱带来的心理影响更大</p>
-</blockquote>
-<p>在回答之间，我们先来玩一个游戏：游戏中，你有50%的概率赢100元，还有50%的概率输100元。请问你愿意参加这个游戏吗？<br>如果你拒绝参加，那么你和大部分人的选择是一样的。作为行为经济学开创者的丹尼尔·卡尼曼（Daniel Kahneman）和阿莫斯·特维尔斯基（Amos Tversky）教授，通过研究这一游戏，在1979年的论文中提出了<strong>损失厌恶(loss aversion)</strong>这一概念。</p>
-<blockquote>
-<p>人们讨厌损失，由损失引发的负效用，要大于由等量收益引发的正效用，这意味着损失的心理价值要大于收益的心理价值。</p>
-</blockquote>
-<p>我们为什么会拒绝上面的游戏呢？因为输赢的概率都是50%，而输100元的痛苦程度要大于赢100元的开心程度。也就是说，这个游戏的预期效用是负数，所以我们拒绝了它。<br>试着问自己一个问题：想要平衡可能损失的100元，你需要得到最少多少元的收益呢？卡尼曼在之后的研究中发现，大部分人的答案是约200元，也就是损失的2倍。这个倍数也被定义为<strong>损失厌恶系数</strong>。还有几个实验也对这个系数做过估计，它们大多落在1.5-2.5之间。这意味着，损失在心理中所占的权重约是收益的2倍。<br>所以回到开头收压岁钱那个情景中。收到压岁钱固然是一件开心的事，可之后失去等量的压岁钱，其造成的痛苦是收到它时带来的快乐的2倍。因此得而复失，比干脆不得还痛苦。在面对一个许诺时，你种下了一个希望，可之后希望破灭带来的痛苦，与之前的开心程度相比要翻一番，这也就暗合了“希望越大，失望越大”。<br>收红包也是同样的道理，给一个人发100元的红包，不如今天发50元，明天发50元，让人的快乐更持久。</p>
-<blockquote>
-<p>作为发红包的一方，最好的方式就是“少额多次”。</p>
-</blockquote>
-<p>一口气直接发完，春节的后面几天怎么办？人家收到红包兴奋一天，之后的几天又去找新的小伙伴玩耍了。多次可以在整个春节期间，和朋友间持续保持活跃的互动与社交来往。</p>
-<blockquote>
-<p>发放红包的金额，要依据自己的经济能力与朋友圈的经济能力来决定。红包发的大，没有抢到红包的人，其损失厌恶心理，需要双倍的红包金额才能平复。</p>
-</blockquote>
-<p>发大额红包，难免被冠以“炫耀”的高帽子。所以发放红包的金额最好与朋友圈平均金额持平左右，切勿做枪头鸟，散尽家财落个坏名声。</p>
-<h2 id="红包收取模型研究"><a href="#红包收取模型研究" class="headerlink" title="红包收取模型研究"></a>红包收取模型研究</h2><p>有发红包的，就有收红包的。尤其是在微信群里，可是存在有很多“闷声发大财”(蛤?)的小伙伴们。所以就有了最佳手气进行红包接龙的游戏规则。<br>这种接龙红包，其发放的金额一般都很小，低至1块钱掰成10份发，高的也有（微信的红包金额上限很人性化，也让发放红包更持久）。<br>群里经常有人喊，自己辛辛苦苦闷声抢红包这么久，还是没攒够多少钱，这是为什么呢？<br>果壳网有这样一篇文章：<a href="http://www.guokr.com/article/439983/" target="_blank" rel="external">红包统计学：为何有些人盆钵满盈，有些人入不敷出？</a>，其中假设了几个红包收取模型：</p>
-<p><strong>红包初级模型——切面条法</strong></p>
-<p>一开始就把所有的钱一次性分成几个包，每人抓一个，每个包都是等同的，里面的钱数期望都是总金额的几分之一。满足这个要求的做法当然不止一个，但我们先考虑最符合直觉的办法——切面条。<br>以下就是切面条法分红包的一个实例，总金额为1元，分成5个：<br>0.02669467, 0.248426309, 0.23745777, 0.35864430, 0.12877695;<br>对于这种分法，我们可以数学上证明，当1块钱（或者长度为1的面条）分成n份儿的时候，而最小值的期望为 <code>1/n^2</code>。<br>在抢红包过程中，我们也遇到过，明明人家发了10块钱的红包，为什么就我抢了0.01分钱，楼上却抢了两块甚至三块！</p>
-<p><strong>红包进阶模型——狄利克雷分布</strong></p>
-<p>复习一下刚才的切面条模型要点。</p>
-<ul>
-<li>一次可以生成n个随机数，且总和为1，这样每个数乘以红包总金额就是每个人分得的钱；</li>
-<li>每个随机数的期望应该均等，即n分之一，这是为了保证大家抢红包机会平等；</li>
-</ul>
-<p>现在我们为它增加一个第三条：</p>
-<ul>
-<li>有一个参数可以用来调节红包的“公平”程度。</li>
-</ul>
-<p>这里的公平不是指机会公平，而是说每次发红包大家实际拿到手的钱是不是相近，即金额分配的波动性是大还是小。<br>比如100元的红包发给10个人，如果每人都是10元左右，我们认为这种分配更公平些；如果最少的才0.8元，最多的有20元，显然就有失公允了（不幸的是作者好几次碰到这种情况…）。</p>
-<p>幸运的是，在众多的随机变量分布中，有一个“狄利克雷分布”非常适合上面列出的这些情况。狄利克雷分布本身有n个参数，但为了满足条件2，我们可以只用一个参数系数来决定它的具体形式。系数越大，每人分得的金额比例就越倾向于平均，反之则波动性越大。<br>更幸运的是，我们开始提出的切面条分法，恰恰就是当为1的时候，狄利克雷分布的最简单状态。</p>
-<h2 id="模拟接力游戏"><a href="#模拟接力游戏" class="headerlink" title="模拟接力游戏"></a>模拟接力游戏</h2><p>有了这个假想的红包分配机制,我们就可以来模拟红包接力的游戏.<br>首先假设我们有一个50人的群,每人初始手头上的可用金额为50元(这里是为了产生”破产”现象而故意放低的,土豪们请忽略此设定).<br>根据规则，每次红包的总金额是20元，发放给10个人，其中抢得最大红包金额的人将发出下一轮的红包。如果某人发完红包后余额变成了负值，就不能再继续抢红包, 因为他/她已经发不起下轮红包了，但允许现在其余额为负。<br>在我们的模拟中，依然对实际情况做了很多简化，比如假设抢到红包的人是在参与游戏的人中间均匀分布的（排除了资产为负的人）。在实际情况中，大家可能会根据自己余额的多少来决定是否继续参加，但在此我们忽略了这种可能。<br>经过模拟,有两位朋友不幸破产了,而最后资产最多的有92.20元,几乎翻了一倍.</p>
-<blockquote>
-<p>一个很明显的事实是，破产的玩家都是因为“中头奖”中得太多了， 导致入不敷出。相反，最终收得92.20元的这位玩家属于“闷声发大财”。<br>经统计，他/她获得第一名0次，第二名3次，第三名2次，第四名2次，第五名4次等等</p>
-</blockquote>
-<p>我们注意到，在游戏最开始的时候，大家的资金都是一样的（50元），而在100次接力之后，几家欢喜几家愁，贫富差距被拉大了。于是我们有两个很自然的问题:</p>
-<ol>
-<li>如何量化这种贫富差距</li>
-<li>随着游戏的进程，贫富差距会有怎样的变化</li>
-</ol>
-<p>对于第一个问题，我们可以借用经济学中的一个概念来予以回答，那就是所谓的<strong>“基尼系数”(Gini Coefficient)</strong>.<br>基尼系数通常被用来衡量一个国家居民收入的公平性，其取值在0到1之间，越大表示贫富差距越大，即少部分的人掌握了这个经济体大部分的收入。<br>基尼系数的计算公式可以在它的维基页面中找到，对于之前的模拟游戏结果，计算出的基尼系数是0.2551。</p>
-<blockquote>
-<p>随着接力的进行，基尼系数的整体趋势是在不断变大的，意味着贫富差距会随着游戏的进行变得越来越大。这其实很好理解：总是会有人因为拿了太多头奖而破产，这样财富会在越来越少的人中间进行分配，所以相应地贫富差距就拉大了。</p>
-</blockquote>
-<h2 id="红包现象背后的思索"><a href="#红包现象背后的思索" class="headerlink" title="红包现象背后的思索"></a>红包现象背后的思索</h2><p>今年过节有个很独特的现象，很多人随手接过长辈发过来的几百元红包，却一直低着头盯着微信群里的红包动态。<br>好像在这些人眼里，亲戚长辈发红包已经是绝对不变的，而微信群红包才是凭自己真实本事抢来的。不劳而获，从古代的守株待兔到现代的永动机理论，永远对人类有着吸引力。<br>过年时我也在群里抢过一段时间红包，当时凭着4G网络经常以手速第一抢得红包，不过玩过一段时间，发现自己的微信钱包竟然瘪了（很不幸，我是贫富差距拉开下的淘汰者）。<br>其实我没想靠抢红包发家致富，不过是借着新年红包，和一群好友聊聊天罢了，相信很多朋友也是这样吧，平时死气沉沉的群，因为红包的原因，各路潜水者都浮出来冒泡了。</p>
-<p>新春佳节，由于红包引发以上一连串的思索。<br>希望朋友们多多珍惜眼前，同时可以通过网络红包这一新型的社交方式，与朋友分享彼此间的快乐。</p>
-<p>顺颂<br>春祺！</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;2015新年的最大亮点，大概就是互联网公司举办的各种抢红包活动吧。&lt;br&gt;尤其是还没到大年初一，微信和支付宝就已经斗得你死我活了，继支付宝红包分享到微信的功能仅几个小时就遭到微信封杀之后，支付宝又推出安全度不怎么高的红包口令（不知道有多人尝试过随便打口令领红包）。&lt;br&gt;支付宝屏蔽来自微信的链接请求，微信又屏蔽支付宝的支付方式，京东压根没有支付宝支付的选项，互联网巨头间的相互屏蔽已经屡见不鲜了。&lt;br&gt;微信和支付宝真的就没有共赢的方式吗？&lt;br&gt;有是有，不过对于移动支付这块大蛋糕，双方都想独吞（微信社交优势大过阿里系来往，阿里系支付宝大过微信支付），根本没有考虑过如何利用自身特点来划分市场。&lt;br&gt;在打车大战中曾经斗得你死我活的滴滴和快的，如今已经烧不起钱，开始尝试坐在同一张谈判桌上商讨合并事宜喽。不过后面还有一个易到用车在虎视眈眈着打车市场。&lt;br&gt;不说这些互联网公司了，谈谈抢红包的我们。&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="Analysis" scheme="http://seanxp.com/categories/Analysis/"/>
-    
-    
-      <category term="Social" scheme="http://seanxp.com/tags/Social/"/>
-    
-      <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
-    
-      <category term="Math" scheme="http://seanxp.com/tags/Math/"/>
     
   </entry>
   
