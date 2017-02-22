@@ -163,9 +163,9 @@ Server listening on 5201
     </summary>
     
     
-      <category term="History" scheme="http://seanxp.com/tags/History/"/>
-    
       <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
+    
+      <category term="History" scheme="http://seanxp.com/tags/History/"/>
     
       <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
     
@@ -318,11 +318,11 @@ server=/.youtube.com/127.0.0.1#5353
       <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
     
     
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
       <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
       <category term="Router" scheme="http://seanxp.com/tags/Router/"/>
-    
-      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
     
       <category term="Shadowsocks" scheme="http://seanxp.com/tags/Shadowsocks/"/>
     
@@ -903,17 +903,17 @@ echo &quot;pinentry-program /usr/local/bin/pinentry-mac&quot; &gt;&gt; ~/.gnupg/
       <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
     
     
-      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
-    
-      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
-    
       <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
       <category term="GitHub" scheme="http://seanxp.com/tags/GitHub/"/>
     
-      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
     
       <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
   </entry>
   
@@ -1087,9 +1087,9 @@ Platform Support Specialist - DigitalOcean
       <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
     
     
-      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
-    
       <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
+      <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
       <category term="GitHub" scheme="http://seanxp.com/tags/GitHub/"/>
     
@@ -1714,9 +1714,9 @@ hotkey.bind(hyper, &apos;Down&apos;, grid.pushWindowDown)
     
       <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
     
-      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
-    
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
     
@@ -2108,15 +2108,15 @@ UDP转发：建议勾选，如有问题则取消勾选
       <category term="Tutorial" scheme="http://seanxp.com/categories/Tutorial/"/>
     
     
+      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+    
       <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
-      <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
     
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
-    
-      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
     
   </entry>
   
@@ -2537,9 +2537,9 @@ UDP转发：建议勾选，如有问题则取消勾选
       <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
     
     
-      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
-    
       <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
+    
+      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
     
       <category term="Education" scheme="http://seanxp.com/tags/Education/"/>
     
