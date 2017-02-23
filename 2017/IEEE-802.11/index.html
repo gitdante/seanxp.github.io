@@ -94,7 +94,7 @@
 <meta property="og:description" content="NO Wi-Fi NO LIFENO IEEE 802.11 NO Wi-Fi">
 <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/2.4_GHz_Wi-Fi_channels_%28802.11b%2Cg_WLAN%29.svg/1440px-2.4_GHz_Wi-Fi_channels_%28802.11b%2Cg_WLAN%29.svg.png">
 <meta property="og:image" content="https://pic1.zhimg.com/6a797af2077f0ff0b2269036a77f5a0c_b.jpg">
-<meta property="og:updated_time" content="2017-02-18T03:53:35.000Z">
+<meta property="og:updated_time" content="2017-02-23T04:17:28.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="IEEE 802.11">
 <meta name="twitter:description" content="NO Wi-Fi NO LIFENO IEEE 802.11 NO Wi-Fi">
@@ -434,8 +434,19 @@
 </ol>
 <h2 id="300M-450M-750M"><a href="#300M-450M-750M" class="headerlink" title="300M/450M/750M"></a>300M/450M/750M</h2><p><a href="https://www.zhihu.com/question/23319546" target="_blank" rel="external">为什么大部分450M的无线路由器都是三根天线的？</a><br>802.11n支持的单天线（MIMO单链路）收发的最高速率是150M，多一根天线，速率就可以增加150M，所以三根就可以达到450M。同理，300M 路由器一般是两根天线。<br><strong>但是前提是发送和接收双方的天线都有3根，理论上才能达到450M的速率</strong>，而实际上终端上天线数一般为一根，ipad有两根就已经可以作为卖点了。<br>所以如果终端只有一根天线，而路由器有3根天线，理论最高速率也只有150M。多两根天线带来的好处就是信号更稳定了，并不能提升理论速率，因为802.11n并不支持多个用户同时收发数据。<br>802.11n除了支持2.4G这个频段之外，还支持5G，所以有些路由器有多达5根天线，一般是三根天线工作在2.4G，两根天线工作在5G，两个频段同时工作可以达到750M （2.4G 450M + 5G 300M）的理论最高速率。<br>反过来，3根天线不等于450Mbps，市场上很多假3根天线，最坑的是第3根天线直接空接，其次是第3根天线仅做数据备份作用，数据最高还是300Mbps，信号理论上比2根天线稳定一些。<br>802.11AC的又是另外一回事，1x1 MIMO最高433Mbps（很多文章里写450Mbps），2x2 MIMO最高867Mbps，3x3 MIMO最高1300Mbps，但很多1x1 MIMO的802.11AC路由器又是3根天线的，原因在于该路由器需要同时支持802.11n，实际是2x2 300Mbps 802.11n + 1x1 433Mbps 802.11AC，号称750M路由器。</p>
 <h1 id="wireless-bandwidth"><a href="#wireless-bandwidth" class="headerlink" title="wireless bandwidth"></a>wireless bandwidth</h1><h2 id="M-1024-1000"><a href="#M-1024-1000" class="headerlink" title="M = 1024 ? 1000 ?"></a>M = 1024 ? 1000 ?</h2><ul>
-<li>通讯领域，十进制论速度，1M = 1000K = 1000 * 1000 = 10^6。在SI中，K是指1000，M是指1000000。这种用法通常用于数据传输速率、计算机网络、cpu时钟等。</li>
-<li>存储领域，二进制论容量，1M = 1024K = 1024 * 1024 = 2^20。像内存、硬盘、cache。</li>
+<li>在电信和电脑运算领域，<a href="https://www.wikiwand.com/zh/%E6%AF%94%E7%89%B9%E7%8E%87" target="_blank" rel="external">比特率</a>（英语：Bit rate，变量R）是单位时间内传输送或处理的比特的数量。比特率规定使用「比特每秒（bit/s 或 bps）」为单位，经常和国际单位制词头关联在一起，如「千（kbit/s, kbps, kilobit per second）」，「兆（Mbit/s, Mbps, megabit per second）」，「吉（Gbit/s, Gbps, gigabit per second）」和「太（Tbit/s, Tbps, terabit per second）」。<ul>
+<li>比特率经常在电信领域用作连接速度、传输速度、信息传输速率和数字带宽容量的同义词。例如：联通 20M 宽带安装；</li>
+<li>在数字多媒体领域，比特率是单位时间播放连续的媒体如压缩后的音频或视频的比特数量。在这个意义上讲，它相当于术语数字带宽消耗量，或吞吐量。</li>
+<li>虽然经常作为「速度」的参考，比特率并不测量「距离 / 时间」，而是被传输或者被处理的「二进制码数量/时间」，所以应该把它和传播速度区分开来，传播速度依赖于传输的介质并且有通常的物理意义。</li>
+<li><font color="red">1Mbps = 1000Kbps = 1000 * 1000 bps = 10^6 bit/s，在 SI 中 Kilo 是指 1000，Mega 是指 1000000。</font>这种用法通常用于数据传输速率、计算机网络、cpu时钟等。</li>
+</ul>
+</li>
+<li>在计算机领域，<a href="https://www.wikiwand.com/zh/%E5%AD%97%E8%8A%82" target="_blank" rel="external">字节</a>（英语：Byte）用作计算机信息计量单位。一个字节（Byte）代表八个比特（Bit）。字节存在两种次方单位「SI」的十进制前缀和「IEC 60027」的二进制前缀，但是网络上依然很多地方并没有区分清楚 MB（megabyte）与 MiB（mebibyte），因此需要根据上下文语境进行判断是二进制前缀还是十进制前缀。<ul>
+<li><font color="red">国际单位制（<a href="https://www.wikiwand.com/zh/%E5%9B%BD%E9%99%85%E5%8D%95%E4%BD%8D%E5%88%B6" target="_blank" rel="external">SI</a>）的十进制前缀，1 MB = 10^3 KB = 10^6 Byte = 10^6*8 bit；</font></li>
+<li><font color="red">国际电工委员会的电气技术用字母符号标准（<a href="https://www.wikiwand.com/zh-hans/IEC_60027" target="_blank" rel="external">IEC 60027</a>）的二进制前缀，1999年新增的IEC 60027-2 定义了 <strong>kilobit不可代表kibibit</strong>，1 MiB(mebibyte) = 2^10 KiB(kibibyte) = 2^20 byte = 2^20*8 bit；</font></li>
+<li>在存储领域，尤其是硬盘，厂商都是使用国际单位制 SI 计算硬盘容量（十进制计算有多少个扇区），而操作系统一般使用二进制计算硬盘容量，因此彼此计算的数据不同。例如一块 3TB 的硬盘，5814021 柱面 16 磁头 63 扇区，一共是 5814021<em>16</em>63 = 5860533168 个扇区，每个扇区是 512 字节，容量是 5860533168 * 512 = ，3000592982016 字节，按 3TB 容量销售，而操作系统计算出的未格式化容量是 3000592982016/1024^3 = 2794.519981 GB；</li>
+</ul>
+</li>
 </ul>
 <h2 id="Mbps"><a href="#Mbps" class="headerlink" title="Mbps"></a>Mbps</h2><p><a href="https://www.zhihu.com/question/19908717" target="_blank" rel="external">150M 无线路由器里的 M 是什么意思？</a><br>网络通讯里面常用的单位是比特每秒（bit per second, bps）：</p>
 <ul>
