@@ -1738,7 +1738,7 @@ hotkey.bind(hyper, &apos;Down&apos;, grid.pushWindowDown)
     <link href="http://seanxp.com/2016/samba/"/>
     <id>http://seanxp.com/2016/samba/</id>
     <published>2016-05-08T06:18:21.000Z</published>
-    <updated>2017-02-03T07:09:58.000Z</updated>
+    <updated>2017-03-24T08:38:26.000Z</updated>
     
     <content type="html"><![CDATA[<p>Samba最大的功能就是可以用于Linux与windows系统直接的文件共享和打印共享，Samba既可以用于windows与Linux之间的文件共享，也可以用于Linux与Linux之间的资源共享，由于NFS(网络文件系统）可以很好的完成Linux与Linux之间的数据共享，因而 Samba较多的用在了Linux与windows之间的数据共享上面。<br><a id="more"></a></p>
 <h1 id="Samba简介"><a href="#Samba简介" class="headerlink" title="Samba简介"></a>Samba简介</h1><p>Samba是一个能让Linux系统应用Microsoft网络通讯协议的软件，而SMB是<code>Server Message Block</code>的缩写，即为服务器消息块 ，SMB主要是作为Microsoft的网络通讯协议，后来Samba将SMB通信协议应用到了Linux系统上，就形成了现在的Samba软件。后来微软又把 SMB 改名为 <code>CIFS（Common Internet File System）</code>，即公共 Internet 文件系统，并且加入了许多新的功能，这样一来，使得Samba具有了更强大的功能。</p>
@@ -1882,6 +1882,18 @@ delete readonly = yes|no # 指明能否删除共享资源里面已经被定义�
 unix charset = UTF-8
 dos charset = cp936
 </code></pre><h2 id="Tip-运行-testparm-检查-samba-的配置文件是否合法。"><a href="#Tip-运行-testparm-检查-samba-的配置文件是否合法。" class="headerlink" title="Tip: 运行 testparm 检查 samba 的配置文件是否合法。"></a>Tip: 运行 testparm 检查 samba 的配置文件是否合法。</h2><pre><code>$ sudo testparm
+</code></pre><h2 id="7-端口映射"><a href="#7-端口映射" class="headerlink" title="7. 端口映射"></a>7. 端口映射</h2><p>当由于网络问题，需要将内网的 Samba 服务器（假设 IP 为192.168.1.100）映射到外网（假设 IP 为 10.42.1.200）供公网 IP 用户访问，可以使用 iptables 进行端口映射；</p>
+<p>Samba服务所使用的端口和协议：</p>
+<ol>
+<li>Port 137 (UDP) - NetBIOS 名字服务；nmbd</li>
+<li>Port 138 (UDP) - NetBIOS 数据报服务；</li>
+<li><font color="red">Port 139 (TCP) - 文件和打印共享；smbd （基于SMB(Server Message Block)协议，主要在局域网中使用，文件共享协议）</font></li>
+<li>Port 389 (TCP) - 用于 LDAP (Active Directory Mode)；</li>
+<li>Port 445 (TCP) - NetBIOS服务在windos 2000及以后版本使用此端口， (Common Internet File System，CIFS，它是SMB协议扩展到Internet后，实现Internet文件共享）；</li>
+<li>Port 901 (TCP) - 用于 SWAT，用于网页管理Samba；</li>
+</ol>
+<p>这里用于文件共享，只需要端口转发 TCP Port 139 即可。</p>
+<pre><code>iptables -t nat -A PREROUTING -d 10.42.1.200/32 -p tcp --dport 139 -j DNAT --to-destination 192.168.1.100:139
 </code></pre>]]></content>
     
     <summary type="html">
