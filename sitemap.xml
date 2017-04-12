@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://seanxp.com/2017/GBA-Ace-Attorney/</loc>
+    
+    <lastmod>2017-04-12T12:40:19.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://seanxp.com/about/index.html</loc>
     
     <lastmod>2017-03-26T23:35:10.000Z</lastmod>
@@ -40,13 +47,6 @@
     <loc>http://seanxp.com/2017/OpenWrt-Router/</loc>
     
     <lastmod>2017-02-18T01:31:48.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://seanxp.com/2017/GBA-Ace-Attorney/</loc>
-    
-    <lastmod>2017-02-06T16:47:05.000Z</lastmod>
     
   </url>
   
