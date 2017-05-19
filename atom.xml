@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://seanxp.com/"/>
-  <updated>2017-05-17T04:25:52.000Z</updated>
+  <updated>2017-05-19T23:41:33.000Z</updated>
   <id>http://seanxp.com/</id>
   
   <author>
@@ -14,6 +14,55 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Music for the Degree of Master in Engineering</title>
+    <link href="http://seanxp.com/2017/the-Music-of-Master/"/>
+    <id>http://seanxp.com/2017/the-Music-of-Master/</id>
+    <published>2017-05-19T22:58:22.000Z</published>
+    <updated>2017-05-19T23:41:33.000Z</updated>
+    
+    <content type="html"><![CDATA[<div style="position: relative;"><div>国内图书分类号：J642</div><div style="position: absolute; right: 0px; top: 0px;">学校代码：1OO45</div></div><div style="position: relative;"><div>国际图书分类号：784.4</div><div style="position: absolute; right: 0px; top: 0px;">密级：绝密</div></div>
+
+<p></p><h1 align="center">工学硕士学位音乐</h1><p></p>
+<h2 align="center">披星戴月写毕设</h2>
+
+<a id="more"></a>
+<h1 id="绪论"><a href="#绪论" class="headerlink" title="绪论"></a>绪论</h1><iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=30903117&auto=1&height=66"></iframe>
+
+<h1 id="主要研究内容"><a href="#主要研究内容" class="headerlink" title="主要研究内容"></a>主要研究内容</h1><p>歌曲名:披星戴月写毕设<br>歌手:马斯特</p>
+<blockquote>
+<p>为你我用了半年的时间<br>披星戴月的写毕设<br>为了这次毕业<br>我连答辩时的注释都曾反复练习<br>仿真从来没能将我的思路<br>表达千万分之一<br>为了这个波形<br>我在夜里想了又想不肯睡去<br>误差它总是慢慢的累积<br>在系统中无法抹去<br>为了能够毕业<br>我在最绝望的时候都忍着不抄袭<br>陌生的公式啊<br>熟悉的绪论里<br>也曾彼此抄袭 也曾想搞创新<br>不管将会面对什么样的评委<br>在知网查重里望着高比率<br>我竟悲伤得不能自已<br>多盼能送点好礼直到顺利答毕<br>六月不要延期</p>
+</blockquote>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>这首歌献给此刻依然在论文一线奋斗的毕业学子并警示即将毕业的师弟师妹们</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]李宗盛. 漂洋过海来看你 [M]. 理性与感性作品音乐会, 1991,8(16):400-404<br>[2]周深. 漂洋过海来看你 [M]. 漂洋过海来看你, 2014,9(5):300-303</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;div style=&quot;position: relative;&quot;&gt;&lt;div&gt;国内图书分类号：J642&lt;/div&gt;&lt;div style=&quot;position: absolute; right: 0px; top: 0px;&quot;&gt;学校代码：1OO45&lt;/div&gt;&lt;/div&gt;&lt;div style=&quot;position: relative;&quot;&gt;&lt;div&gt;国际图书分类号：784.4&lt;/div&gt;&lt;div style=&quot;position: absolute; right: 0px; top: 0px;&quot;&gt;密级：绝密&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;h1 align=&quot;center&quot;&gt;工学硕士学位音乐&lt;/h1&gt;&lt;/p&gt;
+&lt;h2 align=&quot;center&quot;&gt;披星戴月写毕设&lt;/h2&gt;
+    
+    </summary>
+    
+      <category term="Music" scheme="http://seanxp.com/categories/Music/"/>
+    
+    
+      <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
+    
+      <category term="Life" scheme="http://seanxp.com/tags/Life/"/>
+    
+      <category term="Music" scheme="http://seanxp.com/tags/Music/"/>
+    
+      <category term="University" scheme="http://seanxp.com/tags/University/"/>
+    
+      <category term="Master" scheme="http://seanxp.com/tags/Master/"/>
+    
+      <category term="Fun" scheme="http://seanxp.com/tags/Fun/"/>
+    
+  </entry>
   
   <entry>
     <title>To the moon</title>
@@ -1121,9 +1170,9 @@ echo &quot;pinentry-program /usr/local/bin/pinentry-mac&quot; &gt;&gt; ~/.gnupg/
     
       <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
     
-      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
-    
       <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
+      <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
   </entry>
   
@@ -1924,9 +1973,9 @@ hotkey.bind(hyper, &apos;Down&apos;, grid.pushWindowDown)
     
       <category term="Tutorial" scheme="http://seanxp.com/tags/Tutorial/"/>
     
-      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
-    
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
+    
+      <category term="Mac" scheme="http://seanxp.com/tags/Mac/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
     
@@ -2334,11 +2383,11 @@ UDP转发：建议勾选，如有问题则取消勾选
     
       <category term="Internet" scheme="http://seanxp.com/tags/Internet/"/>
     
+      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
+    
       <category term="Software" scheme="http://seanxp.com/tags/Software/"/>
     
       <category term="Efficiency" scheme="http://seanxp.com/tags/Efficiency/"/>
-    
-      <category term="Linux" scheme="http://seanxp.com/tags/Linux/"/>
     
   </entry>
   
@@ -2726,44 +2775,6 @@ UDP转发：建议勾选，如有问题则取消勾选
       <category term="Social" scheme="http://seanxp.com/tags/Social/"/>
     
       <category term="Analysis" scheme="http://seanxp.com/tags/Analysis/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>大学生：“学”与“做”的迷思</title>
-    <link href="http://seanxp.com/2015/doing-and-learning/"/>
-    <id>http://seanxp.com/2015/doing-and-learning/</id>
-    <published>2015-05-03T04:35:31.000Z</published>
-    <updated>2017-02-03T08:11:49.000Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文引用地址：<a href="http://blog.sciencenet.cn/blog-111635-485086.html" target="_blank" rel="external">http://blog.sciencenet.cn/blog-111635-485086.html</a>  此文来自科学网吕喆博客，转载请注明出处。</p>
-<p>事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。<br><a id="more"></a></p>
-<p>从我在大学学习和工作的20多年的亲身经历以及所见所闻来看，不少的学生的学习是沿袭中学的套路，按部就班地听课、看书、做习题、复习备考，最后当然是拿成绩毕业。大学生们毕业后的去向可能因人而异，有的会直接参加工作，有的会选择在国内或者去国外读研究生，无论哪种学生，都有人会把两句话经常挂在嘴边，而这却是两句让大学的老师们听到感觉很不受用的话：“感觉大学没学到啥东西”——说这话的，很多紧接着的下文是“因此，来读研究生”了；也可能是另一句“感觉大学学过的东西没啥用；现在要用的东西都没学过。。。。。。”</p>
-<p>其实这两句话我个人从来没说过，N多年前作为一个学生的时候没有，以后作为一个大学教师更不会这样说，听到学生这样说，倘若有空有条件的话，我还会规劝其几句。<br><strong>事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。</strong><br>当然，如果毕业后要指望这些“知识”全部无一遗漏地在未来某一人承担的某项或某几项具体工作中都得到切实的应用，大概是更加不可思议的，现实情况是如果专业对口儿，会有很少一部分知识，会在实际工作中得到直接的运用。若要指望工作以后自己当下要干的活儿不是由眼前的师傅来教，而是当年坐在教室里就能跟着老师学到，其实也是一种不大靠谱的设想，<strong>大学老师能教给你的只能是基础知识和基本方法，至于它们的具体的实践运用，只能在工作实践环节去学习和掌握</strong>。</p>
-<p><strong>本来，大学阶段主要是“学”的过程，而攻读研究生和参加工作以后主要面临的主要任务是“做”，如果不能处理好“学”与“做”关系，不能建立一个的合理过渡途径，就会出现上述问题。</strong></p>
-<p><strong>绝大多数的大学生都是习惯“先学”而“后做”、“学会”了“再做”的，从小到大“做题”就是这么过来的，可以说是“从来如此”，但“从来如此便对么？”</strong>未必！不可否认，在未“学”之时，连最起码的知识和技能都没有，当然是没办法“做”的。但是否一定要等到全部学完、学会之后再做，倒是个值得商榷的问题。<br><strong>请大家注意，无论大中小学，作业和习题几乎都是在每章每节课内容后面的，学生也是学了之后马上就做的，这就是说，知识学了之后要马上用，在用的过程中逐渐加深印象并掌握好。</strong>正常人不会把习题一股脑地堆积到期末再做，如果那样，时间肯定不够用，而先期学习的知识的遗忘更是个不可忽视的大问题，这样的学习效果和考试成绩恐怕会很不好。<br>所以我说，<strong>不能等到“学完”之后“再做”，作业习题如此，实践环节的东西亦然。</strong></p>
-<p><strong>我不主张“学完再做”，我建议大家“边学边做”，其实我更希望“在做中学”。</strong><br>如果在你自知没有完全学会一方面的知识的情况下开始做事，若有幸做成了，当然马上可以增加信心，会在这个过程中看到自己学习到的知识的用处和价值；即使因为能力不足或者火候不到而做不成，受到的打击也比较有限，因为此时你毕竟还有很多知识和技能没能“全面掌握”，还有提升的空间和希望，挫折感当然不会比你自以为“学完”、“学会”了知识之后更大，这些都是“边学边做”的好处。<br>相反，<strong>如果靠所掌握的阶段性知识不能解决问题，你就会主动地去进一步学习更多、更大范围的知识和技能，这便是“在做中学”的要旨。</strong>如果上升到哲学的高度（而不是下降到“喆学”的低度）套用一句术语，大概就是“知行合一”了。</p>
-<p><strong>“边学边做”是在没有完整地掌握一个大的知识体系的情况下开始实践的，因此容易进入比较功利的状态，对知识的追求浅尝辄止、够用就行，进而可能缺乏耐心去掌握完整的知识体系。</strong><br>如果一个人在运用眼下掌握的并不完整的知识就成功地解决了某个问题的时候，他可能因此而赢得信心并兴奋不已，倘若兴奋过了头儿，甚至可能落入某种陷阱，不再重视后续知识的学习和深入理解，以为凭借已经学会的这些知识就可以横扫天下一切相关问题（有些传说中的“民科”，可能就是这样炼成的）。</p>
-<p><strong>“在做中学”并不是把学习的过程一味地推后，而是强调不间断学习和提高。</strong><br><strong>古话讲“书到用时方恨少”，意思也是说在应用环节中方显知识的不足或者能力的不够，会让人产生学习的动力和“恶补”知识的冲动。</strong><br>但这可绝对不是让大家事前不学习，非要等到遇到问题时才“临难抱佛脚”地学，然后再“现炒现卖”地用。如果平时没有足够的知识储备，可能做的机会都不会有，即使给了你做的机会，也可能会因为缺乏必要知识和认识理解能力而感觉无从下手。相反，只有平时已经有了较深厚的知识积累，并具有良好的学习习惯和迅速运用所学知识的意识，才会更善于在做的过程中学习，并在这种学习中不断进步。</p>
-<p><strong>综上所述，关于知识及其运用，我主张“边学边用”，尽量用自己所学的知识做事情、解决问题，也希望大家能够在做的过程中不断保持学习状态和心态。</strong><br>当然，也可能有很多学生都认为没机会“做”，其实“做”也分大小，大的研究课题未必人人有机缘遇到，小的问题倒总还是有的，关键看你自己平时是否留心它、是不是会去努力钻研之。</p>
-<p>本文引用地址：<a href="http://blog.sciencenet.cn/blog-111635-485086.html" target="_blank" rel="external">http://blog.sciencenet.cn/blog-111635-485086.html</a>  此文来自科学网吕喆博客，转载请注明出处。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文引用地址：&lt;a href=&quot;http://blog.sciencenet.cn/blog-111635-485086.html&quot;&gt;http://blog.sciencenet.cn/blog-111635-485086.html&lt;/a&gt;  此文来自科学网吕喆博客，转载请注明出处。&lt;/p&gt;
-&lt;p&gt;事实上，四年的大学读下来（不是玩下来、混下来），几十门课程学完，真的把上百本的教科书、参考书、习题集啃下来，上千个概念、原理、定理、公式至少过了一遍（按理工科算），若还说“没学到啥东西”，倒真是让人觉得有些不可思议。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="Reproduce" scheme="http://seanxp.com/categories/Reproduce/"/>
-    
-    
-      <category term="Student" scheme="http://seanxp.com/tags/Student/"/>
-    
-      <category term="Learning" scheme="http://seanxp.com/tags/Learning/"/>
-    
-      <category term="Education" scheme="http://seanxp.com/tags/Education/"/>
     
   </entry>
   
